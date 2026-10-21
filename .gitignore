@@ -1,0 +1,5 @@
+.DS_store
+.idea
+bin
+
+services/user-service/.env
