@@ -25,7 +25,7 @@ func (c *Config) validate() error {
 	if err := c.Database.validate(); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
