@@ -33,7 +33,7 @@ func getEnvInt(key string, fallback int) (int, error) {
 	}
 	valueInt, err := strconv.Atoi(strings.TrimSpace(valueStr))
 	if err != nil {
-		return 0, fmt.Errorf("failed to convert %s to int", value)
+		return 0, fmt.Errorf("failed to convert %s to int", valueStr)
 	}
 	return valueInt, nil
 }
