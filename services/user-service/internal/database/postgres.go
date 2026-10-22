@@ -1,0 +1,80 @@
+package database
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"net"
+	"net/url"
+	"time"
+	"user-service/internal/config"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+const databasePingTimeout = 5 * time.Second
+
+type Postgres struct {
+	DB    *gorm.DB
+	sqlDB *sql.DB
+}
+
+func NewPostgres(cfg *config.Config) (*Postgres, error) {
+	logLevel := logger.Warn
+
+	if cfg.App.IsDebugMode {
+		logLevel = logger.Info
+	}
+
+	gormDB, err := gorm.Open(postgres.Open(buildPostgresURL(cfg.Database)), &gorm.Config{
+		Logger:               logger.Default.LogMode(logLevel),
+		DisableAutomaticPing: true,
+		TranslateError:       true,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("open postgres: %w", err)
+	}
+
+	sqlDB, err := gormDB.DB()
+	if err != nil {
+		return nil, fmt.Errorf("get sql database handle: %w", err)
+	}
+
+	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConnections)
+	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConnections)
+	sqlDB.SetConnMaxLifetime(time.Duration(cfg.Database.MaxLifetimeConnections) * time.Second)
+	sqlDB.SetConnMaxIdleTime(time.Duration(cfg.Database.MaxIdleConnections) * time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), databasePingTimeout)
+	defer cancel()
+
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("ping postgres: %w", err)
+	}
+
+	return &Postgres{
+		DB:    gormDB,
+		sqlDB: sqlDB,
+	}, nil
+}
+
+func (p *Postgres) Close() error {
+	return p.sqlDB.Close()
+}
+
+func buildPostgresURL(cfg *config.Database) string {
+	connectionURL := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(cfg.Username, cfg.Password),
+		Host:   net.JoinHostPort(cfg.Host, cfg.Port),
+		Path:   "/" + cfg.Name,
+	}
+
+	query := connectionURL.Query()
+	query.Set("sslmode", cfg.SSLMode)
+	connectionURL.RawQuery = query.Encode()
+	return connectionURL.String()
+}
