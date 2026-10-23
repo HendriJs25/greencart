@@ -2,4 +2,12 @@
 .idea
 bin
 
-services/user-service/.env
+
+# Environment variables
+.env
+.env.*
+*.env
+
+# Allow environment templates
+!.env.example
+!.env.*.example
