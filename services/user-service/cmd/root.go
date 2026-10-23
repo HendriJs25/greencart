@@ -32,5 +32,14 @@ func Execute() error {
 
 func registerCommands() {
 	rootCmd.AddCommand(
-		serveCmd)
+		serveCmd,
+		migrateCmd,
+	)
+
+	migrateCmd.AddCommand(
+		migrateUpCmd,
+		migrateDownCmd,
+		migrateForceCmd,
+		migrateVersionCmd,
+	)
 }
