@@ -28,7 +28,7 @@ func NewPostgres(cfg *config.Config) (*Postgres, error) {
 		logLevel = logger.Info
 	}
 
-	gormDB, err := gorm.Open(postgres.Open(buildPostgresURL(cfg.Database)), &gorm.Config{
+	gormDB, err := gorm.Open(postgres.Open(BuildPostgresURL(cfg.Database)), &gorm.Config{
 		Logger:               logger.Default.LogMode(logLevel),
 		DisableAutomaticPing: true,
 		TranslateError:       true,
@@ -65,7 +65,7 @@ func (p *Postgres) Close() error {
 	return p.sqlDB.Close()
 }
 
-func buildPostgresURL(cfg *config.Database) string {
+func BuildPostgresURL(cfg *config.Database) string {
 	connectionURL := &url.URL{
 		Scheme: "postgres",
 		User:   url.UserPassword(cfg.Username, cfg.Password),
