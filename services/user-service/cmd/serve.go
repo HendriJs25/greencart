@@ -2,9 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"user-service/internal/bootstrap"
 	"user-service/internal/database"
+	"user-service/internal/handler"
 	"user-service/internal/logger"
+	"user-service/internal/routes"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -35,10 +39,22 @@ func runServer() error {
 		"name": cfg.Database.Name,
 	}).Info("postgres connection established")
 
+	handlerRegistry := handler.NewRegistry()
+
+	bootstrap.SetupAppMode(cfg.App)
+
+	router := gin.Default()
+	group := router.Group("/api/v1/users")
+	routerRegistry := routes.NewRegistry(group, handlerRegistry)
+	routerRegistry.RegisterRoutes()
+
 	logger.Log.WithFields(logrus.Fields{
 		"environment": cfg.App.Env,
 		"address":     cfg.ServerAddress(),
 	}).Info("starting user service")
 
+	if err := router.Run(cfg.ServerAddress()); err != nil {
+		return fmt.Errorf("failed to start user service: %w", err)
+	}
 	return nil
 }
