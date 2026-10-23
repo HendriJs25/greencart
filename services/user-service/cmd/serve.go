@@ -1,11 +1,20 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 	"user-service/internal/bootstrap"
+	"user-service/internal/common/response"
+	"user-service/internal/constants"
 	"user-service/internal/database"
 	"user-service/internal/handler"
 	"user-service/internal/logger"
+	"user-service/internal/middleware"
 	"user-service/internal/routes"
 
 	"github.com/gin-gonic/gin"
@@ -43,18 +52,66 @@ func runServer() error {
 
 	bootstrap.SetupAppMode(cfg.App)
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(middleware.RequestID(), middleware.RequestLogger(), middleware.HandlePanic())
+	router.HandleMethodNotAllowed = true
+	router.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, response.Response{
+			Status:  constants.Error,
+			Message: "指定されたパスが見つかりません",
+		})
+	})
+
+	router.NoMethod(func(c *gin.Context) {
+		c.JSON(http.StatusMethodNotAllowed, response.Response{
+			Status:  constants.Error,
+			Message: "指定されたHTTPメソッドは許可されていません",
+		})
+	})
+
 	group := router.Group("/api/v1/users")
 	routerRegistry := routes.NewRegistry(group, handlerRegistry)
 	routerRegistry.RegisterRoutes()
 
-	logger.Log.WithFields(logrus.Fields{
-		"environment": cfg.App.Env,
-		"address":     cfg.ServerAddress(),
-	}).Info("starting user service")
-
-	if err := router.Run(cfg.ServerAddress()); err != nil {
-		return fmt.Errorf("failed to start user service: %w", err)
+	srv := &http.Server{
+		Addr:    cfg.ServerAddress(),
+		Handler: router,
 	}
+
+	serverErr := make(chan error, 1)
+
+	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		logger.Log.WithFields(logrus.Fields{
+			"environment": cfg.App.Env,
+			"address":     cfg.ServerAddress(),
+		}).Info("starting user service")
+
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
+		}
+	}()
+
+	select {
+	case <-signalCtx.Done():
+		logger.Log.Info("shutdown signal received")
+	case err := <-serverErr:
+		return fmt.Errorf("user service stopped unexpectedly: %w", err)
+	}
+
+	stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Log.WithError(err).Warn("failed to gracefully shutdown user service")
+		_ = srv.Close()
+		return fmt.Errorf("forced to shutdown: %w", err)
+	}
+	logger.Log.Info("service exited gracefully")
+
 	return nil
 }
