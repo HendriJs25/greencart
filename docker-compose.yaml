@@ -22,6 +22,8 @@ services:
       context: ./services/user-service
       dockerfile: Dockerfile
     container_name: user-service
+    stop_signal: SIGTERM
+    stop_grace_period: 40s
     env_file:
       - ./services/user-service/.env
     ports:
