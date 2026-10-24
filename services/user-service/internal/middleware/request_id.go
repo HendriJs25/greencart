@@ -3,7 +3,7 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"user-service/internal/common/requestcontext"
+	"user-service/internal/common/helper"
 	"uuid"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +17,7 @@ func RequestID() gin.HandlerFunc {
 			requestID = generateRequestID()
 		}
 
-		ctx := requestcontext.WithRequestID(c.Request.Context(), requestID)
+		ctx := helper.WithRequestID(c.Request.Context(), requestID)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Header("X-Request-ID", requestID)

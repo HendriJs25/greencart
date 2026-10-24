@@ -34,6 +34,7 @@ func registerCommands() {
 	rootCmd.AddCommand(
 		serveCmd,
 		migrateCmd,
+		seedCmd,
 	)
 
 	migrateCmd.AddCommand(

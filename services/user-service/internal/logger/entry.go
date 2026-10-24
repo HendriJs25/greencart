@@ -2,7 +2,7 @@ package logger
 
 import (
 	"context"
-	"user-service/internal/common/requestcontext"
+	"user-service/internal/common/helper"
 
 	"github.com/sirupsen/logrus"
 )
@@ -10,7 +10,7 @@ import (
 func WithContext(ctx context.Context) *logrus.Entry {
 	fields := logrus.Fields{}
 
-	if requestID := requestcontext.GetRequestID(ctx); requestID != "" {
+	if requestID := helper.GetRequestID(ctx); requestID != "" {
 		fields["request_id"] = requestID
 	}
 	return logrus.WithFields(fields)
