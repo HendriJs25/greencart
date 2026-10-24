@@ -16,7 +16,7 @@ type User struct {
 	Phone        *string
 	Photo        *string
 	Address      *string
-	lat          *string
+	Lat          *string
 	Lng          *string
 	IsVerified   bool `gorm:"default:false"`
 	CreatedAt    time.Time
