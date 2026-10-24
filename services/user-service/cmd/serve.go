@@ -10,12 +10,15 @@ import (
 	"time"
 	"user-service/internal/bootstrap"
 	"user-service/internal/common/response"
+	"user-service/internal/common/validator"
 	"user-service/internal/constants"
 	"user-service/internal/database"
 	"user-service/internal/handler"
 	"user-service/internal/logger"
 	"user-service/internal/middleware"
+	"user-service/internal/repository"
 	"user-service/internal/routes"
+	"user-service/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -48,7 +51,14 @@ func runServer() error {
 		"name": cfg.Database.Name,
 	}).Info("postgres connection established")
 
-	handlerRegistry := handler.NewRegistry()
+	v, err := validator.New()
+	if err != nil {
+		return fmt.Errorf("failed to initialize validator: %w", err)
+	}
+
+	repositoryRegistry := repository.NewRegistry(postgresDB.DB)
+	serviceRegistry := services.NewRegistry(repositoryRegistry)
+	handlerRegistry := handler.NewRegistry(serviceRegistry, v)
 
 	bootstrap.SetupAppMode(cfg.App)
 

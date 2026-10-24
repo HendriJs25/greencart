@@ -2,6 +2,7 @@ package routes
 
 import (
 	"user-service/internal/handler"
+	authroutes "user-service/internal/routes/auth"
 	healthroutes "user-service/internal/routes/health"
 
 	"github.com/gin-gonic/gin"
@@ -21,4 +22,5 @@ func NewRegistry(router *gin.RouterGroup, handlers *handler.Registry) *Registry 
 
 func (r *Registry) RegisterRoutes() {
 	healthroutes.Register(r.router, r.handlers.HealthHandler)
+	authroutes.Register(r.router, r.handlers.AuthHandler)
 }
