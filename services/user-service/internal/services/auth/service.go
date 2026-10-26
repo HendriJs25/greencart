@@ -37,5 +37,10 @@ func (s *service) SignIn(ctx context.Context, input SignInInput) (*SignInResult,
 		return nil, errConstant.ErrPasswordIncorrect
 	}
 
-	return ToSignInResult(user, "tmp"), nil
+	CSRFToken, err := helper.GenerateCSRFToken()
+	if err != nil {
+		return nil, err
+	}
+
+	return ToSignInResult(user, CSRFToken), nil
 }

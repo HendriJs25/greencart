@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"user-service/internal/common/helper"
+	"user-service/internal/logger"
 	"uuid"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,11 @@ func RequestID() gin.HandlerFunc {
 		requestID := c.GetHeader("X-Request-Id")
 
 		if !validRequestID(requestID) {
-			requestID = generateRequestID()
+			var err error
+			requestID, err = generateRequestID()
+			if err != nil {
+				logger.Log.WithError(err).Warn("failed to generate request id")
+			}
 		}
 
 		ctx := helper.WithRequestID(c.Request.Context(), requestID)
@@ -41,8 +46,10 @@ func validRequestID(id string) bool {
 	return false
 }
 
-func generateRequestID() string {
+func generateRequestID() (string, error) {
 	var b [16]byte
-	rand.Read(b[:])
-	return hex.EncodeToString(b[:])
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b[:]), nil
 }
