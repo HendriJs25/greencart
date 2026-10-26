@@ -5,10 +5,13 @@ import (
 	"errors"
 	"user-service/internal/common/helper"
 	errConstant "user-service/internal/constants/error"
+	"user-service/internal/logger"
 	userrepository "user-service/internal/repository/user"
+	jwtservice "user-service/internal/services/jwt"
 )
 
 type service struct {
+	jwtService     jwtservice.Service
 	userRepository userrepository.Repository
 }
 
@@ -16,8 +19,9 @@ type Service interface {
 	SignIn(ctx context.Context, input SignInInput) (*SignInResult, error)
 }
 
-func NewService(userRepository userrepository.Repository) Service {
+func NewService(jwtService jwtservice.Service, userRepository userrepository.Repository) Service {
 	return &service{
+		jwtService:     jwtService,
 		userRepository: userRepository,
 	}
 }
@@ -37,10 +41,17 @@ func (s *service) SignIn(ctx context.Context, input SignInInput) (*SignInResult,
 		return nil, errConstant.ErrPasswordIncorrect
 	}
 
-	CSRFToken, err := helper.GenerateCSRFToken()
+	csrfToken, err := helper.GenerateCSRFToken()
 	if err != nil {
 		return nil, err
 	}
+	logger.Log.Debug("csrftoken")
 
-	return ToSignInResult(user, CSRFToken), nil
+	accessToken, err := s.jwtService.GenerateAccessToken(user.UUID)
+	if err != nil {
+		return nil, err
+	}
+	logger.Log.Debug("accesstoken")
+
+	return ToSignInResult(user, accessToken, csrfToken), nil
 }
