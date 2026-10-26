@@ -51,6 +51,22 @@ func runServer() error {
 		"name": cfg.Database.Name,
 	}).Info("postgres connection established")
 
+	redisDB, err := database.NewRedis(cfg.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to connect to redis: %w", err)
+	}
+
+	defer func() {
+		if err := redisDB.Close(); err != nil {
+			logger.Log.WithError(err).Warn("failed to close redis connection")
+		}
+	}()
+
+	logger.Log.WithFields(logrus.Fields{
+		"addr": redisDB.Client.Options().Addr,
+		"db":   redisDB.Client.Options().DB,
+	}).Info("redis connection established")
+
 	v, err := validator.New()
 	if err != nil {
 		return fmt.Errorf("failed to initialize validator: %w", err)
