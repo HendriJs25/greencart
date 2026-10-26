@@ -3,6 +3,8 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"time"
+	"user-service/internal/common/cookie"
 	"user-service/internal/common/response"
 	errConstant "user-service/internal/constants/error"
 	"user-service/internal/domain/dto/request"
@@ -51,6 +53,10 @@ func (h *Handler) SignIn(c *gin.Context) {
 			return
 		}
 	}
+
+	cookieCreatedAt := time.Now().UTC()
+	cookieTTL := result.AccessTokenExpiresAt.Sub(cookieCreatedAt)
+	cookie.SetAccessToken(c, result.AccessToken, cookieTTL)
 
 	response.HTTPResponse(response.ParamHTTPResponse{
 		Code: http.StatusOK,

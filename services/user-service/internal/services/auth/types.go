@@ -1,18 +1,22 @@
 package auth
 
 import (
+	"time"
 	"user-service/internal/domain/model"
+	"user-service/internal/services/jwt"
 	"uuid"
 )
 
 type SignInResult struct {
-	CSRFToken string
-	UUID      uuid.UUID
-	Name      string
-	Email     string
-	Phone     *string
-	Lat       *string
-	Lng       *string
+	AccessToken          string
+	AccessTokenExpiresAt time.Time
+	CSRFToken            string
+	UUID                 uuid.UUID
+	Name                 string
+	Email                string
+	Phone                *string
+	Lat                  *string
+	Lng                  *string
 }
 
 type SignInInput struct {
@@ -20,14 +24,16 @@ type SignInInput struct {
 	Password string
 }
 
-func ToSignInResult(user *model.User, CSRFToken string) *SignInResult {
+func ToSignInResult(user *model.User, accessToken *jwt.AccessToken, csrfToken string) *SignInResult {
 	return &SignInResult{
-		CSRFToken: CSRFToken,
-		UUID:      user.UUID,
-		Name:      user.Name,
-		Email:     user.Email,
-		Phone:     user.Phone,
-		Lat:       user.Lat,
-		Lng:       user.Lng,
+		AccessToken:          accessToken.Value,
+		AccessTokenExpiresAt: accessToken.ExpiresAt,
+		CSRFToken:            csrfToken,
+		UUID:                 user.UUID,
+		Name:                 user.Name,
+		Email:                user.Email,
+		Phone:                user.Phone,
+		Lat:                  user.Lat,
+		Lng:                  user.Lng,
 	}
 }

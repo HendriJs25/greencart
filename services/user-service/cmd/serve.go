@@ -57,7 +57,7 @@ func runServer() error {
 	}
 
 	repositoryRegistry := repository.NewRegistry(postgresDB.DB)
-	serviceRegistry := services.NewRegistry(repositoryRegistry)
+	serviceRegistry := services.NewRegistry(repositoryRegistry, cfg.JWT)
 	handlerRegistry := handler.NewRegistry(serviceRegistry, v)
 
 	bootstrap.SetupAppMode(cfg.App)
