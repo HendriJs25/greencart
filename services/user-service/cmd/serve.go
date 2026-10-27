@@ -17,6 +17,7 @@ import (
 	"user-service/internal/logger"
 	"user-service/internal/middleware"
 	"user-service/internal/repository"
+	sessionrepository "user-service/internal/repository/session"
 	"user-service/internal/routes"
 	"user-service/internal/services"
 
@@ -73,7 +74,8 @@ func runServer() error {
 	}
 
 	repositoryRegistry := repository.NewRegistry(postgresDB.DB)
-	serviceRegistry := services.NewRegistry(repositoryRegistry, cfg.JWT)
+	sessionRepository := sessionrepository.NewRepository(redisDB.Client)
+	serviceRegistry := services.NewRegistry(repositoryRegistry, sessionRepository, cfg.JWT)
 	handlerRegistry := handler.NewRegistry(serviceRegistry, v)
 
 	bootstrap.SetupAppMode(cfg.App)

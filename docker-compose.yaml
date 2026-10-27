@@ -17,6 +17,19 @@ services:
     volumes:
       - user-service-data:/var/lib/postgresql/
 
+  greencart-redis:
+    image: redis:7-alpine
+    container_name: greencart-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - greencart-redis-data:/data
+
   user-service:
     build:
       context: ./services/user-service
@@ -31,6 +44,9 @@ services:
     depends_on:
       user-service-db:
         condition: service_healthy
+      greencart-redis:
+        condition: service_healthy
 
 volumes:
   user-service-data:
+  greencart-redis-data:
