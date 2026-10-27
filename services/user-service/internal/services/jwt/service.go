@@ -16,7 +16,7 @@ type service struct {
 }
 
 type Service interface {
-	GenerateAccessToken(userUUID uuid.UUID) (*AccessToken, error)
+	GenerateAccessToken(userUUID uuid.UUID, jti uuid.UUID) (*AccessToken, error)
 }
 
 func NewService(cfg *config.JWT) Service {
@@ -27,9 +27,7 @@ func NewService(cfg *config.JWT) Service {
 	}
 }
 
-func (s *service) GenerateAccessToken(userUUID uuid.UUID) (*AccessToken, error) {
-	jti := uuid.NewV4()
-
+func (s *service) GenerateAccessToken(userUUID uuid.UUID, jti uuid.UUID) (*AccessToken, error) {
 	now := time.Now().UTC()
 	expiresAt := now.Add(s.accessTokenTTL)
 

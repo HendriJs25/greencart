@@ -17,6 +17,7 @@ import (
 	"user-service/internal/logger"
 	"user-service/internal/middleware"
 	"user-service/internal/repository"
+	sessionrepository "user-service/internal/repository/session"
 	"user-service/internal/routes"
 	"user-service/internal/services"
 
@@ -51,13 +52,30 @@ func runServer() error {
 		"name": cfg.Database.Name,
 	}).Info("postgres connection established")
 
+	redisDB, err := database.NewRedis(cfg.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to connect to redis: %w", err)
+	}
+
+	defer func() {
+		if err := redisDB.Close(); err != nil {
+			logger.Log.WithError(err).Warn("failed to close redis connection")
+		}
+	}()
+
+	logger.Log.WithFields(logrus.Fields{
+		"addr": redisDB.Client.Options().Addr,
+		"db":   redisDB.Client.Options().DB,
+	}).Info("redis connection established")
+
 	v, err := validator.New()
 	if err != nil {
 		return fmt.Errorf("failed to initialize validator: %w", err)
 	}
 
 	repositoryRegistry := repository.NewRegistry(postgresDB.DB)
-	serviceRegistry := services.NewRegistry(repositoryRegistry, cfg.JWT)
+	sessionRepository := sessionrepository.NewRepository(redisDB.Client)
+	serviceRegistry := services.NewRegistry(repositoryRegistry, sessionRepository, cfg.JWT)
 	handlerRegistry := handler.NewRegistry(serviceRegistry, v)
 
 	bootstrap.SetupAppMode(cfg.App)

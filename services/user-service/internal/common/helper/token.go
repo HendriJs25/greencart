@@ -16,7 +16,7 @@ func GenerateCSRFToken() (string, error) {
 	return hex.EncodeToString(b[:]), nil
 }
 
-func hashToken(rawToken string) string {
+func HashToken(rawToken string) string {
 	digest := sha256.Sum256([]byte(rawToken))
 	return hex.EncodeToString(digest[:])
 }
