@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 	"user-service/internal/config"
+	errConstant "user-service/internal/constants/error"
 	"uuid"
 
 	jwtlib "github.com/golang-jwt/jwt/v5"
@@ -17,6 +18,7 @@ type service struct {
 
 type Service interface {
 	GenerateAccessToken(userUUID uuid.UUID, jti uuid.UUID) (*AccessToken, error)
+	ValidateAccessToken(accessToken string) (*AccessTokenClaims, error)
 }
 
 func NewService(cfg *config.JWT) Service {
@@ -50,5 +52,37 @@ func (s *service) GenerateAccessToken(userUUID uuid.UUID, jti uuid.UUID) (*Acces
 	return &AccessToken{
 		Value:     tokenString,
 		ExpiresAt: expiresAt,
+	}, nil
+}
+
+func (s *service) ValidateAccessToken(accessToken string) (*AccessTokenClaims, error) {
+	tokenClaims := &claims{}
+
+	token, err := jwtlib.ParseWithClaims(
+		accessToken,
+		tokenClaims,
+		func(token *jwtlib.Token) (any, error) {
+			return s.secretKey, nil
+		},
+		jwtlib.WithValidMethods([]string{jwtlib.SigningMethodHS256.Alg()}),
+		jwtlib.WithIssuer(s.issuer),
+		jwtlib.WithExpirationRequired(),
+		jwtlib.WithIssuedAt(),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: validate access token: %v", errConstant.ErrInvalidToken, err)
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("%w: access token is invalid", errConstant.ErrInvalidToken)
+	}
+
+	return &AccessTokenClaims{
+		UserUUID:  tokenClaims.UserUUID,
+		SessionID: tokenClaims.ID,
+		Issuer:    tokenClaims.Issuer,
+		IssuedAt:  tokenClaims.IssuedAt.Time,
+		ExpiresAt: tokenClaims.ExpiresAt.Time,
 	}, nil
 }

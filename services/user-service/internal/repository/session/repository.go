@@ -5,8 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"time"
+	errConstant "user-service/internal/constants/error"
 	"user-service/internal/domain/model"
 	"user-service/internal/logger"
 	"uuid"
@@ -25,6 +27,7 @@ type repository struct {
 
 type Repository interface {
 	Set(ctx context.Context, ID string, session model.Session, ttl time.Duration) error
+	Get(ctx context.Context, ID string) (*model.Session, error)
 }
 
 func NewRepository(client redislib.Cmdable) Repository {
@@ -52,6 +55,23 @@ func (r *repository) Set(ctx context.Context, ID string, session model.Session, 
 		return fmt.Errorf("failed to store session: %w", err)
 	}
 	return nil
+}
+
+func (r *repository) Get(ctx context.Context, ID string) (*model.Session, error) {
+	payload, err := r.client.Get(ctx, sessionKey(ID)).Bytes()
+	if err != nil {
+		if errors.Is(err, redislib.Nil) {
+			return nil, errConstant.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+
+	var session model.Session
+	err = json.Unmarshal(payload, &session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal session: %w", err)
+	}
+	return &session, nil
 }
 
 func sessionKey(ID string) string {

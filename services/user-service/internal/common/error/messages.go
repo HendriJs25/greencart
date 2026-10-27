@@ -21,6 +21,10 @@ func MessageJa(err error) string {
 		return "入力内容に誤りがあります"
 	case errors.Is(err, errConstant.ErrInvalidEmailOrPassword):
 		return "メールアドレスまたはパスワードが正しくありません"
+	case errors.Is(err, errConstant.ErrInvalidCSRFToken):
+		return "CSRFトークンの検証に失敗しました"
+	case errors.Is(err, errConstant.ErrInvalidToken):
+		return "認証に失敗しました"
 	default:
 		return "サーバー内部でエラーが発生しました"
 	}
