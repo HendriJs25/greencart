@@ -40,3 +40,11 @@ func Unauthorized(c *gin.Context, err error) {
 		Gin:  c,
 	})
 }
+
+func Forbidden(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusForbidden,
+		Err:  err,
+		Gin:  c,
+	})
+}

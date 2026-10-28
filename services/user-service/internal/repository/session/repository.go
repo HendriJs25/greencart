@@ -10,7 +10,6 @@ import (
 	"time"
 	errConstant "user-service/internal/constants/error"
 	"user-service/internal/domain/model"
-	"user-service/internal/logger"
 	"uuid"
 
 	redislib "github.com/redis/go-redis/v9"
@@ -42,7 +41,6 @@ func (r *repository) Set(ctx context.Context, ID string, session model.Session, 
 
 	sessionKey := sessionKey(ID)
 	indexKey := userSessionKey(session.UUID)
-	logger.Log.WithField("session_key", sessionKey).Debug()
 
 	_, err = r.client.TxPipelined(ctx, func(pipe redislib.Pipeliner) error {
 		pipe.Set(ctx, sessionKey, payload, ttl)

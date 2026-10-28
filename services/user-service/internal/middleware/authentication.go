@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"errors"
-	"user-service/internal/common/helper"
 	"user-service/internal/common/response"
 	"user-service/internal/constants"
 	errConstant "user-service/internal/constants/error"
@@ -16,9 +15,10 @@ import (
 )
 
 type Identity struct {
-	UUID   uuid.UUID
-	Email  string
-	RoleID []int64
+	UUID          uuid.UUID
+	Email         string
+	RoleID        []int64
+	CSRFTokenHash string
 }
 
 type Authentication struct {
@@ -35,13 +35,6 @@ func NewAuthentication(jwtService jwtservice.Service, sessionRepository sessionr
 
 func (a *Authentication) Handle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		csrfToken := c.GetHeader(constants.CSRFToken)
-		if csrfToken == "" {
-			response.Unauthorized(c, errConstant.ErrInvalidCSRFToken)
-			c.Abort()
-			return
-		}
-
 		accessToken, err := c.Cookie(constants.AccessTokenName)
 		if err != nil {
 			response.Unauthorized(c, errConstant.ErrInvalidToken)
@@ -70,14 +63,6 @@ func (a *Authentication) Handle() gin.HandlerFunc {
 			return
 		}
 
-		hashedCSRFToken := helper.HashToken(csrfToken)
-
-		if session.CSRFTokenHash != hashedCSRFToken {
-			response.Unauthorized(c, errConstant.ErrInvalidCSRFToken)
-			c.Abort()
-			return
-		}
-
 		if session.UUID != claims.UserUUID {
 			logger.WithContext(c.Request.Context()).WithFields(logrus.Fields{
 				"jwt_user_uuid":     claims.UserUUID,
@@ -89,9 +74,10 @@ func (a *Authentication) Handle() gin.HandlerFunc {
 		}
 
 		c.Set(constants.AuthenticatedIdentityKey, Identity{
-			UUID:   session.UUID,
-			Email:  session.Email,
-			RoleID: session.RoleID,
+			UUID:          session.UUID,
+			Email:         session.Email,
+			RoleID:        session.RoleID,
+			CSRFTokenHash: session.CSRFTokenHash,
 		})
 
 		c.Next()
