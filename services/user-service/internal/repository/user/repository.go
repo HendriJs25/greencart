@@ -16,6 +16,8 @@ type repository struct {
 
 type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
+	Create(ctx context.Context, user *model.User) error
+	IsEmailExist(ctx context.Context, email string) (bool, error)
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -35,4 +37,24 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*model.User
 		return nil, fmt.Errorf("failed to find user by email: %w", err)
 	}
 	return &user, nil
+}
+
+func (r *repository) Create(ctx context.Context, user *model.User) error {
+	err := r.db.WithContext(ctx).Create(user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errConstant.ErrEmailAlreadyExists
+		}
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+	return nil
+}
+
+func (r *repository) IsEmailExist(ctx context.Context, email string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.User{}).Where("email = ?", email).Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check if email exists: %w", err)
+	}
+	return count > 0, nil
 }

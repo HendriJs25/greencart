@@ -24,6 +24,12 @@ type SignInInput struct {
 	Password string
 }
 
+type SignUpInput struct {
+	Name     string
+	Email    string
+	Password string
+}
+
 func ToSignInResult(user *model.User, accessToken *jwt.AccessToken, csrfToken string) *SignInResult {
 	return &SignInResult{
 		AccessToken:          accessToken.Value,
