@@ -2,6 +2,7 @@ package routes
 
 import (
 	"user-service/internal/handler"
+	"user-service/internal/middleware"
 	authroutes "user-service/internal/routes/auth"
 	healthroutes "user-service/internal/routes/health"
 
@@ -9,18 +10,20 @@ import (
 )
 
 type Registry struct {
-	router   *gin.RouterGroup
-	handlers *handler.Registry
+	router         *gin.RouterGroup
+	handlers       *handler.Registry
+	authentication *middleware.Authentication
 }
 
-func NewRegistry(router *gin.RouterGroup, handlers *handler.Registry) *Registry {
+func NewRegistry(router *gin.RouterGroup, handlers *handler.Registry, authentication *middleware.Authentication) *Registry {
 	return &Registry{
-		router:   router,
-		handlers: handlers,
+		router:         router,
+		handlers:       handlers,
+		authentication: authentication,
 	}
 }
 
 func (r *Registry) RegisterRoutes() {
 	healthroutes.Register(r.router, r.handlers.HealthHandler)
-	authroutes.Register(r.router, r.handlers.AuthHandler)
+	authroutes.Register(r.router, r.handlers, r.authentication)
 }

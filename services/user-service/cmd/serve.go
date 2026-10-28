@@ -77,6 +77,7 @@ func runServer() error {
 	sessionRepository := sessionrepository.NewRepository(redisDB.Client)
 	serviceRegistry := services.NewRegistry(repositoryRegistry, sessionRepository, cfg.JWT)
 	handlerRegistry := handler.NewRegistry(serviceRegistry, v)
+	authenticationMiddleware := middleware.NewAuthentication(serviceRegistry.JWTService, sessionRepository)
 
 	bootstrap.SetupAppMode(cfg.App)
 
@@ -98,7 +99,7 @@ func runServer() error {
 	})
 
 	group := router.Group("/api/v1/users")
-	routerRegistry := routes.NewRegistry(group, handlerRegistry)
+	routerRegistry := routes.NewRegistry(group, handlerRegistry, authenticationMiddleware)
 	routerRegistry.RegisterRoutes()
 
 	srv := &http.Server{
