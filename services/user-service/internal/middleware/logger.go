@@ -19,7 +19,7 @@ func RequestLogger() gin.HandlerFunc {
 
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery // use if only in production raw query doesn't contain credential
-		if raw != "" {
+		if raw != "" && raw != "token" {
 			path = path + "?" + raw
 		}
 
