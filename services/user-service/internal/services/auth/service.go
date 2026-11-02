@@ -135,7 +135,7 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 	query.Set("token", verificationToken)
 	verifyURL.RawQuery = query.Encode()
 
-	var notification event.EmailVerificationRequested
+	var payload []byte
 	var userID int64
 
 	hashedVerificationToken := helper.HashToken(verificationToken)
@@ -175,7 +175,7 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 			return err
 		}
 
-		notification = event.EmailVerificationRequested{
+		notification := event.EmailVerificationRequested{
 			EventID:          uuid.NewV4().String(),
 			ReceiverID:       user.ID,
 			ReceiverEmail:    normalizedEmail,
@@ -184,6 +184,10 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 			NotificationType: "EMAIL",
 		}
 
+		payload, err = json.Marshal(notification)
+		if err != nil {
+			return fmt.Errorf("failed to marshal notification: %w", err)
+		}
 		userID = user.ID
 
 		return nil
@@ -192,16 +196,10 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 		return err
 	}
 
-	payload, err := json.Marshal(notification)
-	if err != nil {
-		return fmt.Errorf("failed to marshal notification: %w", err)
-	}
-
 	key := strconv.FormatInt(userID, 10)
-
 	err = s.kafkaProducer.Publish(ctx, constants.KafkaTopicEmailVerification, key, payload)
 	if err != nil {
-		logger.WithContext(ctx).Info("failed to publish email verification notification")
+		logger.WithContext(ctx).WithError(err).WithField("user_id", userID).Info("failed to publish email verification notification")
 	}
 
 	return nil
