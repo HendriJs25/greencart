@@ -18,9 +18,11 @@ func RequestLogger() gin.HandlerFunc {
 		status := c.Writer.Status()
 
 		path := c.Request.URL.Path
-		raw := c.Request.URL.RawQuery // use if only in production raw query doesn't contain credential
-		if raw != "" && raw != "token" {
-			path = path + "?" + raw
+		query := c.Request.URL.Query()
+		query.Del("token")
+
+		if encoded := query.Encode(); encoded != "" {
+			path += "?" + encoded
 		}
 
 		entry := logger.WithContext(c.Request.Context()).WithFields(logrus.Fields{
