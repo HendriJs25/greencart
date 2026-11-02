@@ -11,7 +11,7 @@ type VerificationToken struct {
 	UserID    int64
 	TokenHash string
 	TokenType string
-	ExpireAt  time.Time
+	ExpiresAt time.Time
 	CreatedAt time.Time
 	UpdatedAt *time.Time
 	DeletedAt gorm.DeletedAt

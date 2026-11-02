@@ -3,8 +3,10 @@ package error
 import "maps"
 
 var AuthFieldNameJa = map[string]string{
-	"Email":    "メールアドレス",
-	"Password": "パスワード",
+	"Name":                 "名前",
+	"Email":                "メールアドレス",
+	"Password":             "パスワード",
+	"PasswordConfirmation": "パスワード確認",
 }
 
 var FieldNameJa = mergeFieldName(AuthFieldNameJa)

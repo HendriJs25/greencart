@@ -48,3 +48,11 @@ func Forbidden(c *gin.Context, err error) {
 		Gin:  c,
 	})
 }
+
+func Conflict(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusConflict,
+		Err:  err,
+		Gin:  c,
+	})
+}

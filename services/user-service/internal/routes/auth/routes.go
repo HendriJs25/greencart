@@ -12,6 +12,7 @@ func Register(router *gin.RouterGroup, handlers *handler.Registry, authenticatio
 	auth := router.Group("/auth")
 
 	auth.POST("/signin", handlers.AuthHandler.SignIn)
+	auth.POST("/signup", handlers.AuthHandler.SignUp)
 
 	authenticated := router.Group("")
 	authenticated.Use(authentication.Handle())

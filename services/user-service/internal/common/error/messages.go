@@ -25,6 +25,8 @@ func MessageJa(err error) string {
 		return "CSRFトークンの検証に失敗しました"
 	case errors.Is(err, errConstant.ErrInvalidToken):
 		return "認証に失敗しました"
+	case errors.Is(err, errConstant.ErrEmailAlreadyExists):
+		return "このメールアドレスは既に使用されています"
 	default:
 		return "サーバー内部でエラーが発生しました"
 	}
