@@ -15,6 +15,7 @@ import (
 	"user-service/internal/database"
 	"user-service/internal/handler"
 	"user-service/internal/logger"
+	"user-service/internal/messaging/kafka"
 	"user-service/internal/middleware"
 	"user-service/internal/repository"
 	sessionrepository "user-service/internal/repository/session"
@@ -73,9 +74,17 @@ func runServer() error {
 		return fmt.Errorf("failed to initialize validator: %w", err)
 	}
 
+	producer := kafka.NewProducer(cfg.Kafka)
+
+	defer func() {
+		if err := producer.Close(); err != nil {
+			logger.Log.WithError(err).Warn("failed to close Kafka producer")
+		}
+	}()
+
 	repositoryRegistry := repository.NewRegistry(postgresDB.DB)
 	sessionRepository := sessionrepository.NewRepository(redisDB.Client)
-	serviceRegistry := services.NewRegistry(repositoryRegistry, sessionRepository, cfg.JWT)
+	serviceRegistry := services.NewRegistry(repositoryRegistry, sessionRepository, producer, cfg)
 	handlerRegistry := handler.NewRegistry(serviceRegistry, v)
 	authenticationMiddleware := middleware.NewAuthentication(serviceRegistry.JWTService, sessionRepository)
 

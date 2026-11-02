@@ -2,13 +2,20 @@ package auth
 
 import (
 	"context"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
 	"time"
 	"user-service/internal/common/helper"
+	"user-service/internal/config"
 	"user-service/internal/constants"
 	errConstant "user-service/internal/constants/error"
+	"user-service/internal/domain/event"
 	"user-service/internal/domain/model"
+	"user-service/internal/logger"
+	"user-service/internal/messaging/kafka"
 	"user-service/internal/repository"
 	sessionrepository "user-service/internal/repository/session"
 	userrepository "user-service/internal/repository/user"
@@ -21,6 +28,8 @@ type service struct {
 	userRepository     userrepository.Repository
 	sessionRepository  sessionrepository.Repository
 	transactionManager repository.TransactionManager
+	kafkaProducer      kafka.Producer
+	config             *config.Config
 }
 
 type Service interface {
@@ -28,12 +37,14 @@ type Service interface {
 	SignUp(ctx context.Context, input SignUpInput) error
 }
 
-func NewService(jwtService jwtservice.Service, userRepository userrepository.Repository, sessionRepository sessionrepository.Repository, transactionManager repository.TransactionManager) Service {
+func NewService(jwtService jwtservice.Service, userRepository userrepository.Repository, sessionRepository sessionrepository.Repository, transactionManager repository.TransactionManager, kafkaProducer kafka.Producer, config *config.Config) Service {
 	return &service{
 		jwtService:         jwtService,
 		userRepository:     userRepository,
 		sessionRepository:  sessionRepository,
 		transactionManager: transactionManager,
+		kafkaProducer:      kafkaProducer,
+		config:             config,
 	}
 }
 
@@ -50,6 +61,10 @@ func (s *service) SignIn(ctx context.Context, input SignInInput) (*SignInResult,
 	isVerify := helper.VerifyPassword(input.Password, user.PasswordHash)
 	if !isVerify {
 		return nil, errConstant.ErrPasswordIncorrect
+	}
+
+	if !user.IsVerified {
+		return nil, errConstant.ErrEmailNotVerified
 	}
 
 	csrfToken, err := helper.GenerateCSRFToken()
@@ -111,6 +126,18 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 	if err != nil {
 		return err
 	}
+
+	verifyURL, err := url.Parse(s.config.VerifyBaseURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse verify URL: %w", err)
+	}
+	query := verifyURL.Query()
+	query.Set("token", verificationToken)
+	verifyURL.RawQuery = query.Encode()
+
+	var notification event.EmailVerificationRequested
+	var userID int64
+
 	hashedVerificationToken := helper.HashToken(verificationToken)
 	expiresAt := time.Now().UTC().Add(time.Hour)
 
@@ -140,7 +167,7 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 			UserID:    user.ID,
 			TokenHash: hashedVerificationToken,
 			TokenType: constants.TokenTypeEmailVerification,
-			ExpireAt:  expiresAt,
+			ExpiresAt: expiresAt,
 		}
 
 		err = repositories.VerificationTokenRepository.Create(ctx, token)
@@ -148,10 +175,33 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 			return err
 		}
 
+		notification = event.EmailVerificationRequested{
+			EventID:          uuid.NewV4().String(),
+			ReceiverID:       user.ID,
+			ReceiverEmail:    normalizedEmail,
+			Subject:          "メールアドレス認証のお願い",
+			Message:          "以下のリンクをクリックして、アカウント認証を完了してください: " + verifyURL.String(),
+			NotificationType: "EMAIL",
+		}
+
+		userID = user.ID
+
 		return nil
 	})
 	if err != nil {
 		return err
+	}
+
+	payload, err := json.Marshal(notification)
+	if err != nil {
+		return fmt.Errorf("failed to marshal notification: %w", err)
+	}
+
+	key := strconv.FormatInt(userID, 10)
+
+	err = s.kafkaProducer.Publish(ctx, constants.KafkaTopicEmailVerification, key, payload)
+	if err != nil {
+		logger.WithContext(ctx).Info("failed to publish email verification notification")
 	}
 
 	return nil

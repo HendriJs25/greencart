@@ -44,7 +44,7 @@ func (h *Handler) SignIn(c *gin.Context) {
 	result, err := h.authService.SignIn(c.Request.Context(), request.ToSignInInput(req))
 	if err != nil {
 		switch {
-		case errors.Is(err, errConstant.ErrUserNotFound), errors.Is(err, errConstant.ErrPasswordIncorrect):
+		case errors.Is(err, errConstant.ErrUserNotFound), errors.Is(err, errConstant.ErrPasswordIncorrect), errors.Is(err, errConstant.ErrEmailNotVerified):
 			response.Unauthorized(c, errConstant.ErrInvalidEmailOrPassword)
 			return
 		default:
@@ -62,5 +62,38 @@ func (h *Handler) SignIn(c *gin.Context) {
 		Code: http.StatusOK,
 		Data: responsedto.ToSignInResponse(result),
 		Gin:  c,
+	})
+}
+
+func (h *Handler) SignUp(c *gin.Context) {
+	var req request.SignUpRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	err := h.authService.SignUp(c.Request.Context(), request.ToSignUpInput(req))
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrEmailAlreadyExists):
+			response.Conflict(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).Error("failed to sign up")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code:    http.StatusCreated,
+		Message: "アカウントの登録が完了しました",
+		Gin:     c,
 	})
 }
