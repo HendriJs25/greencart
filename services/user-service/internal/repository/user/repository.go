@@ -15,16 +15,30 @@ type repository struct {
 }
 
 type Repository interface {
+	FindByID(ctx context.Context, userID int64) (*model.User, error)
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
 	Create(ctx context.Context, user *model.User) error
 	IsEmailExist(ctx context.Context, email string) (bool, error)
 	MarkAsVerified(ctx context.Context, userID int64) error
+	UpdateHashedPasswordByID(ctx context.Context, userID int64, hashedPassword string) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
 	return &repository{
 		db: db,
 	}
+}
+
+func (r *repository) FindByID(ctx context.Context, userID int64) (*model.User, error) {
+	var user model.User
+	err := r.db.WithContext(ctx).Where("id = ?", userID).Take(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errConstant.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to find user by id: %w", err)
+	}
+	return &user, nil
 }
 
 func (r *repository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
@@ -66,6 +80,17 @@ func (r *repository) MarkAsVerified(ctx context.Context, userID int64) error {
 		return fmt.Errorf("failed to mark as verified: %w", result.Error)
 	}
 
+	if result.RowsAffected == 0 {
+		return errConstant.ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *repository) UpdateHashedPasswordByID(ctx context.Context, userID int64, hashedPassword string) error {
+	result := r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Update("password_hash", hashedPassword)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update hashed password: %w", result.Error)
+	}
 	if result.RowsAffected == 0 {
 		return errConstant.ErrUserNotFound
 	}

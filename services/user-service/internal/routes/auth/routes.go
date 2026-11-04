@@ -15,6 +15,7 @@ func Register(router *gin.RouterGroup, handlers *handler.Registry, authenticatio
 	auth.POST("/signup", handlers.AuthHandler.SignUp)
 	auth.POST("/forgot-password", handlers.AuthHandler.ForgotPassword)
 	auth.POST("/verify-account", handlers.AuthHandler.VerifyAccount)
+	auth.PATCH("/reset-password", handlers.AuthHandler.ResetPassword)
 
 	authenticated := router.Group("")
 	authenticated.Use(authentication.Handle())
