@@ -19,6 +19,6 @@ func NewRegistry(services *services.Registry, validate *customValidator.Validate
 	return &Registry{
 		HealthHandler: healthhandler.NewHandler(),
 		AuthHandler:   authhandler.NewHandler(services.AuthService, validate),
-		UserHandler:   userhandler.NewHandler(),
+		UserHandler:   userhandler.NewHandler(services.UserService, validate),
 	}
 }

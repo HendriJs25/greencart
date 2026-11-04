@@ -7,11 +7,13 @@ import (
 	sessionrepository "user-service/internal/repository/session"
 	authservice "user-service/internal/services/auth"
 	jwtservice "user-service/internal/services/jwt"
+	userservice "user-service/internal/services/user"
 )
 
 type Registry struct {
 	JWTService  jwtservice.Service
 	AuthService authservice.Service
+	UserService userservice.Service
 }
 
 func NewRegistry(repositories *repository.Registry, sessionRepository sessionrepository.Repository, kafkaProducer kafka.Producer, cfg *config.Config) *Registry {
@@ -19,5 +21,6 @@ func NewRegistry(repositories *repository.Registry, sessionRepository sessionrep
 	return &Registry{
 		JWTService:  jwtService,
 		AuthService: authservice.NewService(jwtService, repositories.UserRepository, sessionRepository, repositories.VerificationTokenRepository, repositories.Transaction, kafkaProducer, cfg.URL),
+		UserService: userservice.NewService(repositories.UserRepository),
 	}
 }
