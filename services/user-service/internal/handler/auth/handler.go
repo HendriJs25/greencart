@@ -154,3 +154,45 @@ func (h *Handler) VerifyAccount(c *gin.Context) {
 		Gin:     c,
 	})
 }
+
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var query request.ResetPasswordQuery
+	var req request.ResetPasswordRequest
+
+	if err := c.ShouldBindQuery(&query); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	err := h.authService.ResetPassword(c.Request.Context(), authservice.ResetPasswordInput{
+		Token:       query.Token,
+		NewPassword: req.PasswordNew,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrInvalidToken), errors.Is(err, errConstant.ErrUserNotFound):
+			response.Unauthorized(c, errConstant.ErrInvalidToken)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).Error("failed to reset password")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code:    http.StatusOK,
+		Message: "パスワードの再設定が完了しました",
+		Gin:     c,
+	})
+}

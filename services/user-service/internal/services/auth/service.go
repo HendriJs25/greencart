@@ -40,6 +40,7 @@ type Service interface {
 	SignUp(ctx context.Context, input SignUpInput) error
 	ForgotPassword(ctx context.Context, email string) error
 	VerifyEmail(ctx context.Context, token string) error
+	ResetPassword(ctx context.Context, input ResetPasswordInput) error
 }
 
 func NewService(jwtService jwtservice.Service, userRepository userrepository.Repository, sessionRepository sessionrepository.Repository, verificationTokenRepository verificationtokenrepository.Repository,
@@ -310,4 +311,53 @@ func (s *service) VerifyEmail(ctx context.Context, token string) error {
 	}
 	return nil
 
+}
+
+func (s *service) ResetPassword(ctx context.Context, input ResetPasswordInput) error {
+	hashedVerificationToken := helper.HashToken(input.Token)
+	verificationToken, err := s.verificationTokenRepository.FindByTokenHash(ctx, hashedVerificationToken)
+	if err != nil {
+		if errors.Is(err, errConstant.ErrNotFound) {
+			return errConstant.ErrInvalidToken
+		}
+		return err
+	}
+
+	if verificationToken.TokenType != constants.TokenTypeForgotPassword {
+		return errConstant.ErrInvalidToken
+	}
+
+	now := time.Now().UTC()
+	if !now.Before(verificationToken.ExpiresAt) {
+		return errConstant.ErrInvalidToken
+	}
+
+	user, err := s.userRepository.FindByID(ctx, verificationToken.UserID)
+	if err != nil {
+		return err
+	}
+
+	if err := s.sessionRepository.DeleteByUserUUID(ctx, user.UUID); err != nil {
+		return err
+	}
+
+	hashedPassword, err := helper.HashPassword(input.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	err = s.transactionManager.WithinTransaction(ctx, func(repositories *repository.Registry) error {
+		if err := repositories.VerificationTokenRepository.DeleteByID(ctx, verificationToken.ID); err != nil {
+			return err
+		}
+
+		if err := repositories.UserRepository.UpdateHashedPasswordByID(ctx, user.ID, hashedPassword); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

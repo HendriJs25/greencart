@@ -27,6 +27,7 @@ type repository struct {
 type Repository interface {
 	Set(ctx context.Context, ID string, session model.Session, ttl time.Duration) error
 	Get(ctx context.Context, ID string) (*model.Session, error)
+	DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID) error
 }
 
 func NewRepository(client redislib.Cmdable) Repository {
@@ -70,6 +71,23 @@ func (r *repository) Get(ctx context.Context, ID string) (*model.Session, error)
 		return nil, fmt.Errorf("failed to unmarshal session: %w", err)
 	}
 	return &session, nil
+}
+
+func (r *repository) DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID) error {
+	indexKey := userSessionKey(userUUID)
+
+	sessionKeys, err := r.client.SMembers(ctx, indexKey).Result()
+	if err != nil {
+		return fmt.Errorf("failed to get session keys: %w", err)
+	}
+
+	keys := make([]string, 0, len(sessionKeys)+1)
+	keys = append(keys, sessionKeys...)
+	keys = append(keys, indexKey)
+	if err := r.client.Del(ctx, keys...).Err(); err != nil {
+		return fmt.Errorf("failed to delete session: %w", err)
+	}
+	return nil
 }
 
 func sessionKey(ID string) string {

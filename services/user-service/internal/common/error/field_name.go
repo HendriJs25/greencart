@@ -6,6 +6,7 @@ var AuthFieldNameJa = map[string]string{
 	"Name":                 "名前",
 	"Email":                "メールアドレス",
 	"Password":             "パスワード",
+	"PasswordNew":          "新しいパスワード",
 	"PasswordConfirmation": "パスワード確認",
 }
 

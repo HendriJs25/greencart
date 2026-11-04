@@ -30,6 +30,11 @@ type SignUpInput struct {
 	Password string
 }
 
+type ResetPasswordInput struct {
+	Token       string
+	NewPassword string
+}
+
 func ToSignInResult(user *model.User, accessToken *jwt.AccessToken, csrfToken string) *SignInResult {
 	return &SignInResult{
 		AccessToken:          accessToken.Value,

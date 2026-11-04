@@ -18,7 +18,16 @@ type ForgotPasswordRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
+type ResetPasswordRequest struct {
+	PasswordNew          string `json:"password_new" validate:"required,validpassword"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=PasswordNew"`
+}
+
 type VerifyAccountQuery struct {
+	Token string `form:"token" binding:"required"`
+}
+
+type ResetPasswordQuery struct {
 	Token string `form:"token" binding:"required"`
 }
 
