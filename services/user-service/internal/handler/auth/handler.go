@@ -97,3 +97,32 @@ func (h *Handler) SignUp(c *gin.Context) {
 		Gin:     c,
 	})
 }
+
+func (h *Handler) ForgotPassword(c *gin.Context) {
+	var req request.ForgotPasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	err := h.authService.ForgotPassword(c.Request.Context(), req.Email)
+	if err != nil {
+		if !errors.Is(err, errConstant.ErrUserNotFound) {
+			logger.WithContext(c.Request.Context()).WithError(err).Error("failed to forgot password")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code:    http.StatusOK,
+		Message: "ご入力いただいたメールアドレスが登録されている場合、パスワード再設定のご案内をお送りします。メールをご確認ください",
+		Gin:     c,
+	})
+}

@@ -19,32 +19,37 @@ import (
 	"user-service/internal/repository"
 	sessionrepository "user-service/internal/repository/session"
 	userrepository "user-service/internal/repository/user"
+	verificationtokenrepository "user-service/internal/repository/verificationtoken"
 	jwtservice "user-service/internal/services/jwt"
 	"uuid"
 )
 
 type service struct {
-	jwtService         jwtservice.Service
-	userRepository     userrepository.Repository
-	sessionRepository  sessionrepository.Repository
-	transactionManager repository.TransactionManager
-	kafkaProducer      kafka.Producer
-	config             *config.Config
+	jwtService                  jwtservice.Service
+	userRepository              userrepository.Repository
+	sessionRepository           sessionrepository.Repository
+	verificationTokenRepository verificationtokenrepository.Repository
+	transactionManager          repository.TransactionManager
+	kafkaProducer               kafka.Producer
+	configURL                   *config.URL
 }
 
 type Service interface {
 	SignIn(ctx context.Context, input SignInInput) (*SignInResult, error)
 	SignUp(ctx context.Context, input SignUpInput) error
+	ForgotPassword(ctx context.Context, email string) error
 }
 
-func NewService(jwtService jwtservice.Service, userRepository userrepository.Repository, sessionRepository sessionrepository.Repository, transactionManager repository.TransactionManager, kafkaProducer kafka.Producer, config *config.Config) Service {
+func NewService(jwtService jwtservice.Service, userRepository userrepository.Repository, sessionRepository sessionrepository.Repository, verificationTokenRepository verificationtokenrepository.Repository,
+	transactionManager repository.TransactionManager, kafkaProducer kafka.Producer, configURL *config.URL) Service {
 	return &service{
-		jwtService:         jwtService,
-		userRepository:     userRepository,
-		sessionRepository:  sessionRepository,
-		transactionManager: transactionManager,
-		kafkaProducer:      kafkaProducer,
-		config:             config,
+		jwtService:                  jwtService,
+		userRepository:              userRepository,
+		sessionRepository:           sessionRepository,
+		verificationTokenRepository: verificationTokenRepository,
+		transactionManager:          transactionManager,
+		kafkaProducer:               kafkaProducer,
+		configURL:                   configURL,
 	}
 }
 
@@ -61,10 +66,6 @@ func (s *service) SignIn(ctx context.Context, input SignInInput) (*SignInResult,
 	isVerify := helper.VerifyPassword(input.Password, user.PasswordHash)
 	if !isVerify {
 		return nil, errConstant.ErrPasswordIncorrect
-	}
-
-	if !user.IsVerified {
-		return nil, errConstant.ErrEmailNotVerified
 	}
 
 	csrfToken, err := helper.GenerateCSRFToken()
@@ -127,7 +128,7 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 		return err
 	}
 
-	verifyURL, err := url.Parse(s.config.VerifyBaseURL)
+	verifyURL, err := url.Parse(s.configURL.VerifyBaseURL)
 	if err != nil {
 		return fmt.Errorf("failed to parse verify URL: %w", err)
 	}
@@ -200,6 +201,66 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 	err = s.kafkaProducer.Publish(ctx, constants.KafkaTopicEmailVerification, key, payload)
 	if err != nil {
 		logger.WithContext(ctx).WithError(err).WithField("user_id", userID).Info("failed to publish email verification notification")
+	}
+
+	return nil
+}
+
+func (s *service) ForgotPassword(ctx context.Context, email string) error {
+	normalizedEmail := helper.NormalizeEmail(email)
+	user, err := s.userRepository.FindByEmail(ctx, normalizedEmail)
+	if err != nil {
+		if errors.Is(err, errConstant.ErrNotFound) {
+			return errConstant.ErrUserNotFound
+		}
+		return err
+	}
+
+	verificationToken, err := helper.GenerateVerificationToken()
+	if err != nil {
+		return err
+	}
+
+	forgotPasswordBaseURL, err := url.Parse(s.configURL.ForgotPasswordBaseURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse forgot password URL: %w", err)
+	}
+
+	query := forgotPasswordBaseURL.Query()
+	query.Set("token", verificationToken)
+	forgotPasswordBaseURL.RawQuery = query.Encode()
+
+	notification := event.ForgotPasswordRequested{
+		EventID:          uuid.NewV4().String(),
+		ReceiverID:       user.ID,
+		ReceiverEmail:    normalizedEmail,
+		Subject:          "パスワード再設定のご案内",
+		Message:          "以下のリンクから新しいパスワードを設定してください: " + forgotPasswordBaseURL.String(),
+		NotificationType: "EMAIL",
+	}
+
+	payload, err := json.Marshal(notification)
+	if err != nil {
+		return fmt.Errorf("failed to marshal notification: %w", err)
+	}
+
+	hashedVerificationToken := helper.HashToken(verificationToken)
+	expiresAt := time.Now().UTC().Add(time.Hour)
+
+	token := &model.VerificationToken{
+		UserID:    user.ID,
+		TokenHash: hashedVerificationToken,
+		TokenType: constants.TokenTypeForgotPassword,
+		ExpiresAt: expiresAt,
+	}
+
+	if err := s.verificationTokenRepository.Create(ctx, token); err != nil {
+		return err
+	}
+
+	key := strconv.FormatInt(user.ID, 10)
+	if err := s.kafkaProducer.Publish(ctx, constants.KafkaTopicForgotPassword, key, payload); err != nil {
+		logger.WithContext(ctx).WithError(err).WithField("user_id", user.ID).Info("failed to publish forgot password notification")
 	}
 
 	return nil
