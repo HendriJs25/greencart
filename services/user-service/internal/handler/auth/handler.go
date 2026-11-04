@@ -126,3 +126,31 @@ func (h *Handler) ForgotPassword(c *gin.Context) {
 		Gin:     c,
 	})
 }
+
+func (h *Handler) VerifyAccount(c *gin.Context) {
+	var query request.VerifyAccountQuery
+
+	if err := c.ShouldBindQuery(&query); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	err := h.authService.VerifyEmail(c.Request.Context(), query.Token)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrUserNotFound), errors.Is(err, errConstant.ErrInvalidToken):
+			response.Unauthorized(c, errConstant.ErrInvalidToken)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).Error("failed to verify account")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code:    http.StatusOK,
+		Message: "アカウントの認証が完了しました",
+		Gin:     c,
+	})
+}

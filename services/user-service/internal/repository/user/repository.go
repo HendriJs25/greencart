@@ -18,6 +18,7 @@ type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
 	Create(ctx context.Context, user *model.User) error
 	IsEmailExist(ctx context.Context, email string) (bool, error)
+	MarkAsVerified(ctx context.Context, userID int64) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -57,4 +58,16 @@ func (r *repository) IsEmailExist(ctx context.Context, email string) (bool, erro
 		return false, fmt.Errorf("failed to check if email exists: %w", err)
 	}
 	return count > 0, nil
+}
+
+func (r *repository) MarkAsVerified(ctx context.Context, userID int64) error {
+	result := r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Update("is_verified", true)
+	if result.Error != nil {
+		return fmt.Errorf("failed to mark as verified: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return errConstant.ErrUserNotFound
+	}
+	return nil
 }
