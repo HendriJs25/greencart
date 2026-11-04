@@ -18,6 +18,6 @@ func NewRegistry(repositories *repository.Registry, sessionRepository sessionrep
 	jwtService := jwtservice.NewService(cfg.JWT)
 	return &Registry{
 		JWTService:  jwtService,
-		AuthService: authservice.NewService(jwtService, repositories.UserRepository, sessionRepository, repositories.Transaction, kafkaProducer, cfg),
+		AuthService: authservice.NewService(jwtService, repositories.UserRepository, sessionRepository, repositories.VerificationTokenRepository, repositories.Transaction, kafkaProducer, cfg.URL),
 	}
 }

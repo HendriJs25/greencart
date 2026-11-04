@@ -1,5 +1,6 @@
 package constants
 
 const (
-	KafkaTopicEmailVerification = "email_verification"
+	KafkaTopicEmailVerification = "auth.email-verification.v1"
+	KafkaTopicForgotPassword    = "auth.forgot-password.v1"
 )

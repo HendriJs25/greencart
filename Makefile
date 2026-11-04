@@ -24,7 +24,8 @@ deploy-user-service:
 	docker compose up -d user-service
 
 kafka-init:
-	docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic email_verification --partitions 3 --replication-factor 1 --config retention.ms=259200000
+	docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic auth.email-verification.v1 --partitions 3 --replication-factor 1 --config retention.ms=259200000
+	docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic auth.forgot-password.v1 --partitions 3 --replication-factor 1 --config retention.ms=259200000
 
 migrate-up: check-service
 	docker compose run --rm $(SERVICE) migrate up

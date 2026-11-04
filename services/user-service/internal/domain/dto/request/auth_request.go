@@ -14,6 +14,10 @@ type SignUpRequest struct {
 	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=Password"`
 }
 
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
 func ToSignInInput(req SignInRequest) authservice.SignInInput {
 	return authservice.SignInInput{
 		Email:    req.Email,

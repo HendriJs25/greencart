@@ -1,13 +1,13 @@
 package config
 
 type Config struct {
-	App           App
-	Database      *Database
-	Seed          *Seed
-	JWT           *JWT
-	Redis         *Redis
-	Kafka         *Kafka
-	VerifyBaseURL string
+	App      App
+	Database *Database
+	Seed     *Seed
+	JWT      *JWT
+	Redis    *Redis
+	Kafka    *Kafka
+	URL      *URL
 }
 
 func Load() (*Config, error) {
@@ -36,19 +36,19 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	verifyBaseURL, err := getEnvRequired("VERIFY_BASE_URL")
+	url, err := loadURL()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Config{
-		App:           loadApp(),
-		Database:      database,
-		Seed:          seed,
-		JWT:           jwt,
-		Redis:         redis,
-		Kafka:         kafka,
-		VerifyBaseURL: verifyBaseURL,
+		App:      loadApp(),
+		Database: database,
+		Seed:     seed,
+		JWT:      jwt,
+		Redis:    redis,
+		Kafka:    kafka,
+		URL:      url,
 	}, nil
 }
 
