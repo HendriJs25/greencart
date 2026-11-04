@@ -6,6 +6,7 @@ import (
 	"fmt"
 	errConstant "user-service/internal/constants/error"
 	"user-service/internal/domain/model"
+	"uuid"
 
 	"gorm.io/gorm"
 )
@@ -17,6 +18,7 @@ type repository struct {
 type Repository interface {
 	FindByID(ctx context.Context, userID int64) (*model.User, error)
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
+	FindByUUID(ctx context.Context, userUUID uuid.UUID) (*model.User, error)
 	Create(ctx context.Context, user *model.User) error
 	IsEmailExist(ctx context.Context, email string) (bool, error)
 	MarkAsVerified(ctx context.Context, userID int64) error
@@ -31,7 +33,7 @@ func NewRepository(db *gorm.DB) Repository {
 
 func (r *repository) FindByID(ctx context.Context, userID int64) (*model.User, error) {
 	var user model.User
-	err := r.db.WithContext(ctx).Where("id = ?", userID).Take(&user).Error
+	err := r.db.WithContext(ctx).Where("id = ? AND is_verified = ?", userID, true).Take(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errConstant.ErrUserNotFound
@@ -50,6 +52,18 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*model.User
 			return nil, errConstant.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to find user by email: %w", err)
+	}
+	return &user, nil
+}
+
+func (r *repository) FindByUUID(ctx context.Context, userUUID uuid.UUID) (*model.User, error) {
+	var user model.User
+	err := r.db.WithContext(ctx).Preload("Roles").Where("uuid = ? AND is_verified = ?", userUUID, true).Take(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errConstant.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to find user by uuid: %w", err)
 	}
 	return &user, nil
 }
