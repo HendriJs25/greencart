@@ -18,6 +18,10 @@ type ForgotPasswordRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
+type VerifyAccountQuery struct {
+	Token string `form:"token" binding:"required"`
+}
+
 func ToSignInInput(req SignInRequest) authservice.SignInInput {
 	return authservice.SignInInput{
 		Email:    req.Email,

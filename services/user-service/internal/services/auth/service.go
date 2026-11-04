@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 	"user-service/internal/common/helper"
 	"user-service/internal/config"
@@ -38,6 +39,7 @@ type Service interface {
 	SignIn(ctx context.Context, input SignInInput) (*SignInResult, error)
 	SignUp(ctx context.Context, input SignUpInput) error
 	ForgotPassword(ctx context.Context, email string) error
+	VerifyEmail(ctx context.Context, token string) error
 }
 
 func NewService(jwtService jwtservice.Service, userRepository userrepository.Repository, sessionRepository sessionrepository.Repository, verificationTokenRepository verificationtokenrepository.Repository,
@@ -152,6 +154,7 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 		}
 
 		user := &model.User{
+			UUID:         uuid.NewV7(),
 			Name:         input.Name,
 			Email:        normalizedEmail,
 			PasswordHash: hashedPassword,
@@ -264,4 +267,47 @@ func (s *service) ForgotPassword(ctx context.Context, email string) error {
 	}
 
 	return nil
+}
+
+func (s *service) VerifyEmail(ctx context.Context, token string) error {
+	trimmedToken := strings.TrimSpace(token)
+	if trimmedToken == "" {
+		return errConstant.ErrInvalidToken
+	}
+
+	hashedVerificationToken := helper.HashToken(trimmedToken)
+
+	verificationToken, err := s.verificationTokenRepository.FindByTokenHash(ctx, hashedVerificationToken)
+	if err != nil {
+		if errors.Is(err, errConstant.ErrNotFound) {
+			return errConstant.ErrInvalidToken
+		}
+		return err
+	}
+
+	if verificationToken.TokenType != constants.TokenTypeEmailVerification {
+		return errConstant.ErrInvalidToken
+	}
+
+	now := time.Now().UTC()
+
+	if !now.Before(verificationToken.ExpiresAt) {
+		return errConstant.ErrInvalidToken
+	}
+
+	err = s.transactionManager.WithinTransaction(ctx, func(repositories *repository.Registry) error {
+		if err := repositories.UserRepository.MarkAsVerified(ctx, verificationToken.UserID); err != nil {
+			return err
+		}
+
+		if err := repositories.VerificationTokenRepository.DeleteByID(ctx, verificationToken.ID); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
