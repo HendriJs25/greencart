@@ -15,10 +15,10 @@ type GetProfileResult struct {
 	Lat      *string
 	Lng      *string
 	Address  *string
-	Photo    *string
+	PhotoURL *string
 }
 
-func ToGetProfileResult(user *model.User) *GetProfileResult {
+func ToGetProfileResult(user *model.User, photoURL *string) *GetProfileResult {
 	roleName := make([]string, 0, len(user.Roles))
 	for _, role := range user.Roles {
 		roleName = append(roleName, role.Name)
@@ -33,6 +33,6 @@ func ToGetProfileResult(user *model.User) *GetProfileResult {
 		Lat:      user.Lat,
 		Lng:      user.Lng,
 		Address:  user.Address,
-		Photo:    user.Photo,
+		PhotoURL: photoURL,
 	}
 }

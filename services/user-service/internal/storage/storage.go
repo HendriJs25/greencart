@@ -8,4 +8,5 @@ import (
 type Storage interface {
 	UploadFile(ctx context.Context, file *multipart.FileHeader, path string, contentType string) (string, error)
 	DeleteFile(ctx context.Context, path string) error
+	GetFileURL(key string) *string
 }
