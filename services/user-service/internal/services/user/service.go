@@ -24,7 +24,7 @@ type service struct {
 
 type Service interface {
 	GetProfile(ctx context.Context, userUUID uuid.UUID) (*GetProfileResult, error)
-	UploadProfileImage(ctx context.Context, userUUID uuid.UUID, file *multipart.FileHeader) (string, error)
+	UploadProfileImage(ctx context.Context, userUUID uuid.UUID, file *multipart.FileHeader) (*string, error)
 }
 
 func NewService(userRepository userrepository.Repository, s3Storage storage.Storage) Service {
@@ -40,35 +40,40 @@ func (s *service) GetProfile(ctx context.Context, userUUID uuid.UUID) (*GetProfi
 		return nil, err
 	}
 
-	result := ToGetProfileResult(user)
+	var profileImageURL *string
+	if user.Photo != nil {
+		profileImageURL = s.s3Storage.GetFileURL(*user.Photo)
+	}
+
+	result := ToGetProfileResult(user, profileImageURL)
 	return result, nil
 }
 
-func (s *service) UploadProfileImage(ctx context.Context, userUUID uuid.UUID, file *multipart.FileHeader) (string, error) {
+func (s *service) UploadProfileImage(ctx context.Context, userUUID uuid.UUID, file *multipart.FileHeader) (*string, error) {
 	contentType, err := validateProfileImage(file)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	user, err := s.userRepository.FindByUUID(ctx, userUUID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	oldKey := user.Photo
 
-	path := fmt.Sprintf("users/%s/profile/%s%s", user.UUID, uuid.New().String(), strings.ToLower(filepath.Ext(file.Filename)))
+	path := fmt.Sprintf("users/%s/profile/%s%s", user.UUID, uuid.NewV4().String(), strings.ToLower(filepath.Ext(file.Filename)))
 
 	uploadedKey, err := s.s3Storage.UploadFile(ctx, file, path, contentType)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if err := s.userRepository.UpdatePhotoKeyByUUID(ctx, user.UUID, uploadedKey); err != nil {
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 		_ = s.s3Storage.DeleteFile(cleanupCtx, uploadedKey)
 		cancel()
-		return "", err
+		return nil, err
 	}
 
 	if oldKey != nil && *oldKey != "" {
@@ -79,7 +84,7 @@ func (s *service) UploadProfileImage(ctx context.Context, userUUID uuid.UUID, fi
 		cancel()
 	}
 
-	return uploadedKey, nil
+	return s.s3Storage.GetFileURL(uploadedKey), nil
 }
 
 func validateProfileImage(file *multipart.FileHeader) (string, error) {

@@ -15,10 +15,10 @@ import (
 )
 
 type s3Storage struct {
-	client   *s3.Client
-	uploader *transfermanager.Client
-	bucket   string
-	endpoint string
+	client        *s3.Client
+	uploader      *transfermanager.Client
+	bucket        string
+	publicBaseURL string
 }
 
 func NewS3Storage(ctx context.Context, cfg *config.AWS) (Storage, error) {
@@ -27,6 +27,9 @@ func NewS3Storage(ctx context.Context, cfg *config.AWS) (Storage, error) {
 	}
 
 	if cfg.S3Endpoint != "" {
+		if cfg.SecretAccessKey == "" || cfg.AccessKeyID == "" {
+			return nil, fmt.Errorf("missing AWS credentials")
+		}
 		opts = append(opts, awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			cfg.AccessKeyID,
 			cfg.SecretAccessKey,
@@ -48,10 +51,10 @@ func NewS3Storage(ctx context.Context, cfg *config.AWS) (Storage, error) {
 	})
 
 	return &s3Storage{
-		client:   client,
-		uploader: transfermanager.New(client),
-		bucket:   cfg.S3Bucket,
-		endpoint: cfg.S3Endpoint,
+		client:        client,
+		uploader:      transfermanager.New(client),
+		bucket:        cfg.S3Bucket,
+		publicBaseURL: cfg.S3PublicBaseURL,
 	}, nil
 
 }
@@ -88,4 +91,9 @@ func (s *s3Storage) DeleteFile(ctx context.Context, path string) error {
 		return fmt.Errorf("failed to delete object %s: %w", path, err)
 	}
 	return nil
+}
+
+func (s *s3Storage) GetFileURL(key string) *string {
+	URL := fmt.Sprintf("%s/%s", s.publicBaseURL, key)
+	return &URL
 }

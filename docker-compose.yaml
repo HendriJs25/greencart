@@ -137,13 +137,6 @@ services:
     entrypoint: [ "/bin/sh", "-ec" ]
     command:
       - |
-        echo "Checking RustFS connection..."
-  
-        aws --endpoint-url http://s3:9000 \
-        s3api list-buckets
-  
-        echo "RustFS connection successful"
-        
         if aws --endpoint-url http://s3:9000 \
           s3api head-bucket \
           --bucket "$$S3_BUCKET" > /dev/null 2>&1; then
@@ -153,11 +146,31 @@ services:
           aws --endpoint-url http://s3:9000 \
             s3api create-bucket \
             --bucket "$$S3_BUCKET"
-
-          echo "Bucket $$S3_BUCKET created successfully"
+    
+          echo "Bucket $$S3_BUCKET created"
         fi
 
-        echo "S3 initialization completed"
+        cat > /tmp/bucket-policy.json <<EOF
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "PublicReadProfileImages",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::$$S3_BUCKET/users/*/profile/*"
+            }
+          ]
+        }
+        EOF
+
+        aws --endpoint-url http://s3:9000 \
+          s3api put-bucket-policy \
+          --bucket "$$S3_BUCKET" \
+          --policy file:///tmp/bucket-policy.json
+
+        echo "S3 bucket and policy initialized successfully"
 
   user-service:
     build:

@@ -15,11 +15,11 @@ type GetProfileResponse struct {
 	Lat      *string   `json:"lat"`
 	Lng      *string   `json:"lng"`
 	Address  *string   `json:"address"`
-	Photo    *string   `json:"photo"`
+	PhotoURL *string   `json:"photo"`
 }
 
 type UploadImageProfileResponse struct {
-	ImageURL string `json:"image_url"`
+	ImageURL *string `json:"image_url"`
 }
 
 func ToGetProfileResponse(result *user.GetProfileResult) *GetProfileResponse {
@@ -33,6 +33,6 @@ func ToGetProfileResponse(result *user.GetProfileResult) *GetProfileResponse {
 		Lat:      result.Lat,
 		Lng:      result.Lng,
 		Address:  result.Address,
-		Photo:    result.Photo,
+		PhotoURL: result.PhotoURL,
 	}
 }
