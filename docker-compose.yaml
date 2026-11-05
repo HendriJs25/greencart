@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: user_service_db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d user_service_db"]
       interval: 5s
@@ -21,7 +21,7 @@ services:
     image: redis:7-alpine
     container_name: greencart-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -35,7 +35,7 @@ services:
     hostname: kafka
     restart: unless-stopped
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
     environment:
       CLUSTER_ID: "pGWHIqi8TFOB1aae9xF4yQ"
       KAFKA_NODE_ID: "1"
@@ -68,6 +68,97 @@ services:
       retries: 10
       start_period: 30s
 
+  kafka_initializer:
+    image: apache/kafka:4.4.0
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - |      
+        /opt/kafka/bin/kafka-topics.sh \
+          --bootstrap-server kafka:19092 \
+          --create \
+          --if-not-exists \
+          --topic auth.email-verification.v1 \
+          --partitions 3 \
+          --replication-factor 1 \
+          --config retention.ms=259200000
+        
+        /opt/kafka/bin/kafka-topics.sh \
+          --bootstrap-server kafka:19092 \
+          --create \
+          --if-not-exists \
+          --topic auth.forgot-password.v1 \
+          --partitions 3 \
+          --replication-factor 1 \
+          --config retention.ms=259200000
+
+        echo "Kafka topic initialized successfully"
+
+  s3:
+    image: rustfs/rustfs:1.0.4
+    restart: unless-stopped
+    command: ["/data"]
+    ports:
+      - "127.0.0.1:9273:9000"
+      - "127.0.0.1:9274:9001"
+    environment:
+      RUSTFS_ADDRESS: "0.0.0.0:9000"
+      RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: aws_user
+      RUSTFS_SECRET_KEY: aws_password
+      RUSTFS_REGION: ap-northeast-1
+    volumes:
+      - s3-data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:9000/health >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  s3_initializer:
+    image: public.ecr.aws/aws-cli/aws-cli:latest
+    restart: "no"
+    depends_on:
+      s3:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: aws_user
+      AWS_SECRET_ACCESS_KEY: aws_password
+      AWS_DEFAULT_REGION: ap-northeast-1
+      AWS_EC2_METADATA_DISABLED: "true"
+      S3_BUCKET: greencart-uploads
+    entrypoint: [ "/bin/sh", "-ec" ]
+    command:
+      - |
+        echo "Checking RustFS connection..."
+  
+        aws --endpoint-url http://s3:9000 \
+        s3api list-buckets
+  
+        echo "RustFS connection successful"
+        
+        if aws --endpoint-url http://s3:9000 \
+          s3api head-bucket \
+          --bucket "$$S3_BUCKET" > /dev/null 2>&1; then
+
+          echo "Bucket $$S3_BUCKET already exists"
+        else
+          aws --endpoint-url http://s3:9000 \
+            s3api create-bucket \
+            --bucket "$$S3_BUCKET"
+
+          echo "Bucket $$S3_BUCKET created successfully"
+        fi
+
+        echo "S3 initialization completed"
+
   user-service:
     build:
       context: ./services/user-service
@@ -86,8 +177,11 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      s3:
+        condition: service_healthy
 
 volumes:
   user-service-data:
   greencart-redis-data:
   kafka-data:
+  s3-data:

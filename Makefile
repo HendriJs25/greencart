@@ -9,23 +9,24 @@ check-service:
 	@test -n "$(SERVICE)" || (echo "SERVICE is required. Example: make up SERVICE=user-service" && exit 1)
 
 setup: build
-	docker compose up -d --wait kafka greencart-redis
-	docker compose up -d --wait user-service-db
+	docker compose up -d --wait kafka greencart-redis user-service-db s3
 	$(MAKE) kafka-init
+	$(MAKE) s3-init
 	$(MAKE) migrate-up SERVICE=user-service
 	$(MAKE) seed SERVICE=user-service
 	docker compose up -d user-service
 
 deploy-user-service:
 	docker compose build user-service
-	docker compose up -d --wait kafka greencart-redis user-service-db
-	$(MAKE) kafka-init
+	docker compose up -d --wait kafka greencart-redis user-service-db s3
 	$(MAKE) migrate-up SERVICE=user-service
 	docker compose up -d user-service
 
 kafka-init:
-	docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic auth.email-verification.v1 --partitions 3 --replication-factor 1 --config retention.ms=259200000
-	docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic auth.forgot-password.v1 --partitions 3 --replication-factor 1 --config retention.ms=259200000
+	docker compose run --rm --no-deps kafka_initializer
+
+s3-init:
+	docker compose run --rm --no-deps s3_initializer
 
 migrate-up: check-service
 	docker compose run --rm $(SERVICE) migrate up

@@ -33,6 +33,14 @@ func ValidationError(c *gin.Context, err error) {
 	})
 }
 
+func UnprocessableEntity(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusUnprocessableEntity,
+		Err:  err,
+		Gin:  c,
+	})
+}
+
 func Unauthorized(c *gin.Context, err error) {
 	HTTPResponse(ParamHTTPResponse{
 		Code: http.StatusUnauthorized,

@@ -23,6 +23,7 @@ type Repository interface {
 	IsEmailExist(ctx context.Context, email string) (bool, error)
 	MarkAsVerified(ctx context.Context, userID int64) error
 	UpdateHashedPasswordByID(ctx context.Context, userID int64, hashedPassword string) error
+	UpdatePhotoKeyByUUID(ctx context.Context, userUUID uuid.UUID, photoKey string) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -104,6 +105,17 @@ func (r *repository) UpdateHashedPasswordByID(ctx context.Context, userID int64,
 	result := r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Update("password_hash", hashedPassword)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update hashed password: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *repository) UpdatePhotoKeyByUUID(ctx context.Context, userUUID uuid.UUID, photoKey string) error {
+	result := r.db.WithContext(ctx).Model(&model.User{}).Where("uuid = ?", userUUID).Update("photo", photoKey)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update photo key: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return errConstant.ErrUserNotFound

@@ -18,6 +18,10 @@ type GetProfileResponse struct {
 	Photo    *string   `json:"photo"`
 }
 
+type UploadImageProfileResponse struct {
+	ImageURL string `json:"image_url"`
+}
+
 func ToGetProfileResponse(result *user.GetProfileResult) *GetProfileResponse {
 	return &GetProfileResponse{
 		RoleName: result.RoleName,

@@ -27,6 +27,10 @@ func MessageJa(err error) string {
 		return "認証に失敗しました"
 	case errors.Is(err, errConstant.ErrEmailAlreadyExists):
 		return "このメールアドレスは既に使用されています"
+	case errors.Is(err, errConstant.ErrFileTooBig):
+		return "ファイルサイズが大きすぎます"
+	case errors.Is(err, errConstant.ErrUnsupportedFileExtension):
+		return "対応していないファイル形式です"
 	default:
 		return "サーバー内部でエラーが発生しました"
 	}

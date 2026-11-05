@@ -8,6 +8,7 @@ type Config struct {
 	Redis    *Redis
 	Kafka    *Kafka
 	URL      *URL
+	AWS      *AWS
 }
 
 func Load() (*Config, error) {
@@ -41,6 +42,11 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	aws, err := loadAWS()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		App:      loadApp(),
 		Database: database,
@@ -49,6 +55,7 @@ func Load() (*Config, error) {
 		Redis:    redis,
 		Kafka:    kafka,
 		URL:      url,
+		AWS:      aws,
 	}, nil
 }
 
