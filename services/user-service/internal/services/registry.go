@@ -8,6 +8,7 @@ import (
 	authservice "user-service/internal/services/auth"
 	jwtservice "user-service/internal/services/jwt"
 	userservice "user-service/internal/services/user"
+	"user-service/internal/storage"
 )
 
 type Registry struct {
@@ -16,11 +17,11 @@ type Registry struct {
 	UserService userservice.Service
 }
 
-func NewRegistry(repositories *repository.Registry, sessionRepository sessionrepository.Repository, kafkaProducer kafka.Producer, cfg *config.Config) *Registry {
+func NewRegistry(repositories *repository.Registry, sessionRepository sessionrepository.Repository, kafkaProducer kafka.Producer, s3Storage storage.Storage, cfg *config.Config) *Registry {
 	jwtService := jwtservice.NewService(cfg.JWT)
 	return &Registry{
 		JWTService:  jwtService,
 		AuthService: authservice.NewService(jwtService, repositories.UserRepository, sessionRepository, repositories.VerificationTokenRepository, repositories.Transaction, kafkaProducer, cfg.URL),
-		UserService: userservice.NewService(repositories.UserRepository),
+		UserService: userservice.NewService(repositories.UserRepository, s3Storage),
 	}
 }

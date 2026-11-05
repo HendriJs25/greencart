@@ -1,8 +1,10 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 	"user-service/internal/common/response"
+	errConstant "user-service/internal/constants/error"
 	responsedto "user-service/internal/domain/dto/response"
 	"user-service/internal/logger"
 	"user-service/internal/middleware"
@@ -41,5 +43,48 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		Code: http.StatusOK,
 		Data: responsedto.ToGetProfileResponse(user),
 		Gin:  c,
+	})
+}
+
+func (h *Handler) UploadProfileImage(c *gin.Context) {
+	const maxRequestSize = 3 << 20
+
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxRequestSize)
+
+	file, err := c.FormFile("photo")
+	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			response.UnprocessableEntity(c, errConstant.ErrFileTooBig)
+			return
+		}
+		response.BadRequest(c)
+		return
+	}
+
+	identity, ok := middleware.RequireIdentity(c)
+	if !ok {
+		return
+	}
+
+	key, err := h.userService.UploadProfileImage(c.Request.Context(), identity.UUID, file)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrFileTooBig), errors.Is(err, errConstant.ErrUnsupportedFileExtension):
+			response.UnprocessableEntity(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).WithField("user_uuid", identity.UUID).Error("upload profile image failed")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: responsedto.UploadImageProfileResponse{
+			ImageURL: key,
+		},
+		Gin: c,
 	})
 }
