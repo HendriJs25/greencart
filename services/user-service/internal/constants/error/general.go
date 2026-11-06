@@ -10,4 +10,5 @@ var (
 	ErrInvalidCSRFToken         = errors.New("invalid CSRF token")
 	ErrFileTooBig               = errors.New("file too big")
 	ErrUnsupportedFileExtension = errors.New("unsupported file extension")
+	ErrForbidden                = errors.New("forbidden")
 )
