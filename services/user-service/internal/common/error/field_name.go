@@ -10,7 +10,15 @@ var AuthFieldNameJa = map[string]string{
 	"PasswordConfirmation": "パスワード確認",
 }
 
-var FieldNameJa = mergeFieldName(AuthFieldNameJa)
+var UserFieldNameJa = map[string]string{
+	"Name":    "名前",
+	"Phone":   "電話番号",
+	"Lat":     "緯度",
+	"Lng":     "経度",
+	"Address": "住所",
+}
+
+var FieldNameJa = mergeFieldName(AuthFieldNameJa, UserFieldNameJa)
 
 func mergeFieldName(mapsToMerge ...map[string]string) map[string]string {
 	result := make(map[string]string)
