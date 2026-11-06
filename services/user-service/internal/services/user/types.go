@@ -18,6 +18,14 @@ type GetProfileResult struct {
 	PhotoURL *string
 }
 
+type UpdateUserDataInput struct {
+	Name    string
+	Phone   int64
+	Lat     *float64
+	Lng     *float64
+	Address *string
+}
+
 func ToGetProfileResult(user *model.User, photoURL *string) *GetProfileResult {
 	roleName := make([]string, 0, len(user.Roles))
 	for _, role := range user.Roles {

@@ -25,6 +25,7 @@ type service struct {
 type Service interface {
 	GetProfile(ctx context.Context, userUUID uuid.UUID) (*GetProfileResult, error)
 	UploadProfileImage(ctx context.Context, userUUID uuid.UUID, file *multipart.FileHeader) (*string, error)
+	UpdateUserProfile(ctx context.Context, userUUID uuid.UUID, input UpdateUserDataInput) error
 }
 
 func NewService(userRepository userrepository.Repository, s3Storage storage.Storage) Service {
@@ -126,4 +127,21 @@ func validateProfileImage(file *multipart.FileHeader) (string, error) {
 	}
 
 	return contentType, nil
+}
+
+func (s *service) UpdateUserProfile(ctx context.Context, userUUID uuid.UUID, input UpdateUserDataInput) error {
+	formatedPhone := fmt.Sprintf("+81%d", input.Phone)
+
+	updates := map[string]any{
+		"name":    input.Name,
+		"phone":   formatedPhone,
+		"lat":     input.Lat,
+		"lng":     input.Lng,
+		"address": input.Address,
+	}
+
+	if err := s.userRepository.UpdateUserData(ctx, userUUID, updates); err != nil {
+		return err
+	}
+	return nil
 }

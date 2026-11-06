@@ -24,6 +24,7 @@ type Repository interface {
 	MarkAsVerified(ctx context.Context, userID int64) error
 	UpdateHashedPasswordByID(ctx context.Context, userID int64, hashedPassword string) error
 	UpdatePhotoKeyByUUID(ctx context.Context, userUUID uuid.UUID, photoKey string) error
+	UpdateUserData(ctx context.Context, userUUID uuid.UUID, updates map[string]any) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -116,6 +117,17 @@ func (r *repository) UpdatePhotoKeyByUUID(ctx context.Context, userUUID uuid.UUI
 	result := r.db.WithContext(ctx).Model(&model.User{}).Where("uuid = ?", userUUID).Update("photo", photoKey)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update photo key: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *repository) UpdateUserData(ctx context.Context, userUUID uuid.UUID, updates map[string]any) error {
+	result := r.db.WithContext(ctx).Model(&model.User{}).Where("uuid = ? AND is_verified = ?", userUUID, true).Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update user data: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return errConstant.ErrUserNotFound
