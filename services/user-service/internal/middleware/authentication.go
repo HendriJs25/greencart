@@ -17,7 +17,7 @@ import (
 type Identity struct {
 	UUID          uuid.UUID
 	Email         string
-	RoleID        []int64
+	RoleName      []string
 	CSRFTokenHash string
 }
 
@@ -76,7 +76,7 @@ func (a *Authentication) Handle() gin.HandlerFunc {
 		c.Set(constants.AuthenticatedIdentityKey, Identity{
 			UUID:          session.UUID,
 			Email:         session.Email,
-			RoleID:        session.RoleID,
+			RoleName:      session.RoleName,
 			CSRFTokenHash: session.CSRFTokenHash,
 		})
 

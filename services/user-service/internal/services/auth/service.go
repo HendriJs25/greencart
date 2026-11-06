@@ -85,9 +85,9 @@ func (s *service) SignIn(ctx context.Context, input SignInInput) (*SignInResult,
 		return nil, err
 	}
 
-	var userRoles []int64
+	var userRoles []string
 	for _, role := range user.Roles {
-		userRoles = append(userRoles, role.ID)
+		userRoles = append(userRoles, role.Name)
 	}
 
 	sessionCreatedAt := time.Now().UTC()
@@ -98,7 +98,7 @@ func (s *service) SignIn(ctx context.Context, input SignInInput) (*SignInResult,
 		UUID:          user.UUID,
 		CSRFTokenHash: hashedCSRFToken,
 		Email:         user.Email,
-		RoleID:        userRoles,
+		RoleName:      userRoles,
 		CreatedAt:     sessionCreatedAt,
 	}
 

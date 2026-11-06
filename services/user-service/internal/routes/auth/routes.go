@@ -3,7 +3,8 @@ package auth
 import (
 	"user-service/internal/handler"
 	"user-service/internal/middleware"
-	userroutes "user-service/internal/routes/user"
+	adminroutes "user-service/internal/routes/auth/admin"
+	userroutes "user-service/internal/routes/auth/user"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,4 +22,5 @@ func Register(router *gin.RouterGroup, handlers *handler.Registry, authenticatio
 	authenticated.Use(authentication.Handle())
 
 	userroutes.Register(authenticated, handlers.UserHandler)
+	adminroutes.Register(authenticated, handlers.CustomerHandler)
 }
