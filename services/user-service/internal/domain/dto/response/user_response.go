@@ -12,8 +12,8 @@ type GetProfileResponse struct {
 	Name     string    `json:"name"`
 	Email    string    `json:"email"`
 	Phone    *string   `json:"phone"`
-	Lat      *string   `json:"lat"`
-	Lng      *string   `json:"lng"`
+	Lat      *float64  `json:"lat"`
+	Lng      *float64  `json:"lng"`
 	Address  *string   `json:"address"`
 	PhotoURL *string   `json:"photo"`
 }
