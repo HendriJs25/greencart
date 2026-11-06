@@ -11,6 +11,7 @@ type Response struct {
 	Status  string  `json:"status"`
 	Message any     `json:"message,omitempty"`
 	Data    any     `json:"data"`
+	Meta    any     `json:"meta,omitempty"`
 	Token   *string `json:"token,omitempty"`
 }
 
@@ -20,6 +21,7 @@ type ParamHTTPResponse struct {
 	Message any
 	Gin     *gin.Context
 	Data    any
+	Meta    any
 	Token   *string
 }
 
@@ -29,6 +31,7 @@ func HTTPResponse(param ParamHTTPResponse) {
 			Status:  constants.Success,
 			Message: param.Message,
 			Data:    param.Data,
+			Meta:    param.Meta,
 			Token:   param.Token,
 		})
 		return

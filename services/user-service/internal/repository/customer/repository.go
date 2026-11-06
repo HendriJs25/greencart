@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"user-service/internal/constants"
 	"user-service/internal/domain/model"
+	"user-service/internal/query"
 
 	"gorm.io/gorm"
 )
@@ -14,7 +15,7 @@ type repository struct {
 }
 
 type Repository interface {
-	FindAll(ctx context.Context) ([]model.User, error)
+	FindAll(ctx context.Context, params query.Pagination) ([]model.User, int64, error)
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -23,18 +24,27 @@ func NewRepository(db *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) FindAll(ctx context.Context) ([]model.User, error) {
+func (r *repository) FindAll(ctx context.Context, params query.Pagination) ([]model.User, int64, error) {
 	var customers []model.User
+	var count int64
 
-	err := r.customerQuery(ctx).Find(&customers).Error
+	q := r.customerQuery(ctx)
+
+	err := q.Session(&gorm.Session{}).Count(&count).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to find all customers: %w", err)
+		return nil, 0, fmt.Errorf("failed to count all customers: %w", err)
 	}
-	return customers, nil
+
+	err = q.Session(&gorm.Session{}).Scopes(query.Paginate(params.Page, params.Size)).Find(&customers).Error
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to find all customers: %w", err)
+	}
+	return customers, count, nil
 }
 
 func (r *repository) customerQuery(ctx context.Context) *gorm.DB {
-	query := r.db.WithContext(ctx).Table("users").
+	q := r.db.WithContext(ctx).Table("users").
 		Joins(`JOIN user_roles ur
 					ON ur.user_id = users.id`).
 		Joins(`JOIN roles r
@@ -42,5 +52,5 @@ func (r *repository) customerQuery(ctx context.Context) *gorm.DB {
 					AND r.deleted_at IS NULL`).
 		Where("users.deleted_at IS NULL").
 		Where("r.name = ?", constants.Customer)
-	return query
+	return q
 }
