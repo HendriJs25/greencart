@@ -7,5 +7,5 @@ import (
 )
 
 func Register(router *gin.RouterGroup, customerHandler *customerhandler.Handler) {
-	router.GET("/checkadmin", customerHandler.CheckAdmin)
+	router.GET("/customers", customerHandler.GetAll)
 }
