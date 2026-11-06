@@ -3,6 +3,7 @@ package customer
 import (
 	"net/http"
 	"user-service/internal/common/response"
+	"user-service/internal/domain/dto/request"
 	responsedto "user-service/internal/domain/dto/response"
 	"user-service/internal/logger"
 	customerservice "user-service/internal/services/customer"
@@ -21,7 +22,14 @@ func NewHandler(customerService customerservice.Service) *Handler {
 }
 
 func (h *Handler) GetAll(c *gin.Context) {
-	customers, err := h.customerService.GetAll(c.Request.Context())
+	var query request.GetAllCustomersQuery
+
+	if err := c.ShouldBindQuery(&query); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	customers, metadata, err := h.customerService.GetAll(c.Request.Context(), request.ToPaginationInput(query.Pagination))
 	if err != nil {
 		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to get all customer")
 		response.InternalServerError(c)
@@ -33,6 +41,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 	response.HTTPResponse(response.ParamHTTPResponse{
 		Code: http.StatusOK,
 		Data: result,
+		Meta: metadata,
 		Gin:  c,
 	})
 }

@@ -2,6 +2,7 @@ package customer
 
 import (
 	"context"
+	"user-service/internal/query"
 	customerrepository "user-service/internal/repository/customer"
 )
 
@@ -10,7 +11,7 @@ type service struct {
 }
 
 type Service interface {
-	GetAll(ctx context.Context) ([]GetAllCustomerResult, error)
+	GetAll(ctx context.Context, params query.Pagination) ([]GetAllCustomerResult, *query.Meta, error)
 }
 
 func NewService(customerRepository customerrepository.Repository) Service {
@@ -19,12 +20,13 @@ func NewService(customerRepository customerrepository.Repository) Service {
 	}
 }
 
-func (s *service) GetAll(ctx context.Context) ([]GetAllCustomerResult, error) {
-	customers, err := s.customerRepository.FindAll(ctx)
+func (s *service) GetAll(ctx context.Context, params query.Pagination) ([]GetAllCustomerResult, *query.Meta, error) {
+	customers, total, err := s.customerRepository.FindAll(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	metadata := query.Metadata(params.Page, params.Size, total)
 	result := ToGetAllCustomerResult(customers)
-	return result, nil
+	return result, metadata, nil
 }
