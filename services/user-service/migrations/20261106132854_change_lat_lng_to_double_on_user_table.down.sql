@@ -1,0 +1,5 @@
+ALTER TABLE users
+    ALTER COLUMN lat TYPE VARCHAR(50)
+          USING lat::VARCHAR(50),
+    ALTER COLUMN lng TYPE VARCHAR(50)
+          USING lng::VARCHAR(50);

@@ -12,8 +12,8 @@ type GetProfileResult struct {
 	Name     string
 	Email    string
 	Phone    *string
-	Lat      *string
-	Lng      *string
+	Lat      *float64
+	Lng      *float64
 	Address  *string
 	PhotoURL *string
 }

@@ -15,8 +15,8 @@ type SignInResult struct {
 	Name                 string
 	Email                string
 	Phone                *string
-	Lat                  *string
-	Lng                  *string
+	Lat                  *float64
+	Lng                  *float64
 }
 
 type SignInInput struct {
