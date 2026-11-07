@@ -14,6 +14,7 @@ type service struct {
 type Service interface {
 	GetAll(ctx context.Context, params queryinput.GetAllCustomerQuery) ([]GetAllCustomerResult, *query.Meta, error)
 	GetDetail(ctx context.Context, id int64) (*GetDetailCustomerResult, error)
+	Delete(ctx context.Context, id int64) error
 }
 
 func NewService(customerRepository customerrepository.Repository) Service {
@@ -41,4 +42,8 @@ func (s *service) GetDetail(ctx context.Context, id int64) (*GetDetailCustomerRe
 
 	result := ToGetDetailCustomerResult(customer)
 	return result, nil
+}
+
+func (s *service) Delete(ctx context.Context, id int64) error {
+	return s.customerRepository.DeleteByID(ctx, id)
 }
