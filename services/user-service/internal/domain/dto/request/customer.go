@@ -8,6 +8,8 @@ import (
 type GetAllCustomersQuery struct {
 	PaginationQuery
 	SortingQuery
+
+	Search string `form:"search"`
 }
 
 func ToGetAllCustomerQueryInput(params GetAllCustomersQuery) queryinput.GetAllCustomerQuery {
@@ -20,5 +22,6 @@ func ToGetAllCustomerQueryInput(params GetAllCustomersQuery) queryinput.GetAllCu
 			SortBy:    params.SortBy,
 			SortOrder: params.SortOrder,
 		},
+		Search: params.Search,
 	}
 }
