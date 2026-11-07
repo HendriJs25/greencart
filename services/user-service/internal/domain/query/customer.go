@@ -5,4 +5,6 @@ import "user-service/internal/query"
 type GetAllCustomerQuery struct {
 	query.Pagination
 	query.Sorting
+
+	Search string
 }

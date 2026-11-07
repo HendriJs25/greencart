@@ -17,6 +17,10 @@ var customerSortColumns = map[string]string{
 	"created_at": "users.created_at",
 }
 
+var customerSearchColumns = []string{
+	"users.name", "users.email", "users.address",
+}
+
 type repository struct {
 	db *gorm.DB
 }
@@ -35,7 +39,7 @@ func (r *repository) FindAll(ctx context.Context, params queryinput.GetAllCustom
 	var customers []model.User
 	var count int64
 
-	q := r.customerQuery(ctx)
+	q := r.customerQuery(ctx).Scopes(query.Search(params.Search, customerSearchColumns...))
 
 	err := q.Session(&gorm.Session{}).Count(&count).Error
 	if err != nil {
