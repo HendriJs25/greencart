@@ -31,6 +31,8 @@ func MessageJa(err error) string {
 		return "ファイルサイズが大きすぎます"
 	case errors.Is(err, errConstant.ErrUnsupportedFileExtension):
 		return "対応していないファイル形式です"
+	case errors.Is(err, errConstant.ErrUserNotFound):
+		return "該当するデータがありません"
 	case errors.Is(err, errConstant.ErrForbidden):
 		return "この操作を実行する権限がありません"
 	default:
