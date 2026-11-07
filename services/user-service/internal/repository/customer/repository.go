@@ -2,8 +2,10 @@ package customer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"user-service/internal/constants"
+	errConstant "user-service/internal/constants/error"
 	"user-service/internal/domain/model"
 	queryinput "user-service/internal/domain/query"
 	"user-service/internal/query"
@@ -27,6 +29,7 @@ type repository struct {
 
 type Repository interface {
 	FindAll(ctx context.Context, params queryinput.GetAllCustomerQuery) ([]model.User, int64, error)
+	FindByID(ctx context.Context, id int64) (*model.User, error)
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -52,6 +55,20 @@ func (r *repository) FindAll(ctx context.Context, params queryinput.GetAllCustom
 		return nil, 0, fmt.Errorf("failed to find all customers: %w", err)
 	}
 	return customers, count, nil
+}
+
+func (r *repository) FindByID(ctx context.Context, id int64) (*model.User, error) {
+	var customer model.User
+
+	err := r.customerQuery(ctx).Where("users.id = ?", id).Take(&customer).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errConstant.ErrUserNotFound
+		}
+
+		return nil, fmt.Errorf("failed to find customer by id: %w", err)
+	}
+	return &customer, nil
 }
 
 func (r *repository) customerQuery(ctx context.Context) *gorm.DB {

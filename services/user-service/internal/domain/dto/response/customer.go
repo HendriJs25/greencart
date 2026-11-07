@@ -1,6 +1,9 @@
 package response
 
-import "user-service/internal/services/customer"
+import (
+	"user-service/internal/services/customer"
+	"uuid"
+)
 
 type GetAllCustomerResponse struct {
 	ID    int64   `json:"id"`
@@ -8,6 +11,19 @@ type GetAllCustomerResponse struct {
 	Email string  `json:"email"`
 	Phone *string `json:"phone"`
 	Photo *string `json:"photo"`
+}
+
+type GetDetailCustomerResponse struct {
+	ID         int64     `json:"id"`
+	UUID       uuid.UUID `json:"uuid"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	Phone      *string   `json:"phone"`
+	Photo      *string   `json:"photo"`
+	Address    *string   `json:"address"`
+	Lat        *float64  `json:"lat"`
+	Lng        *float64  `json:"lng"`
+	IsVerified bool      `json:"is_verified"`
 }
 
 func ToGetAllCustomerResponse(customers []customer.GetAllCustomerResult) []GetAllCustomerResponse {
@@ -22,4 +38,19 @@ func ToGetAllCustomerResponse(customers []customer.GetAllCustomerResult) []GetAl
 		})
 	}
 	return result
+}
+
+func ToGetDetailCustomerResponse(customer *customer.GetDetailCustomerResult) GetDetailCustomerResponse {
+	return GetDetailCustomerResponse{
+		ID:         customer.ID,
+		UUID:       customer.UUID,
+		Name:       customer.Name,
+		Email:      customer.Email,
+		Phone:      customer.Phone,
+		Photo:      customer.Photo,
+		Address:    customer.Address,
+		Lat:        customer.Lat,
+		Lng:        customer.Lng,
+		IsVerified: customer.IsVerified,
+	}
 }

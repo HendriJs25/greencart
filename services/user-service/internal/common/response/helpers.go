@@ -64,3 +64,11 @@ func Conflict(c *gin.Context, err error) {
 		Gin:  c,
 	})
 }
+
+func NotFound(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusNotFound,
+		Err:  err,
+		Gin:  c,
+	})
+}

@@ -13,6 +13,7 @@ type service struct {
 
 type Service interface {
 	GetAll(ctx context.Context, params queryinput.GetAllCustomerQuery) ([]GetAllCustomerResult, *query.Meta, error)
+	GetDetail(ctx context.Context, id int64) (*GetDetailCustomerResult, error)
 }
 
 func NewService(customerRepository customerrepository.Repository) Service {
@@ -30,4 +31,14 @@ func (s *service) GetAll(ctx context.Context, params queryinput.GetAllCustomerQu
 	metadata := query.Metadata(params.Page, params.Size, total)
 	result := ToGetAllCustomerResult(customers)
 	return result, metadata, nil
+}
+
+func (s *service) GetDetail(ctx context.Context, id int64) (*GetDetailCustomerResult, error) {
+	customer, err := s.customerRepository.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	result := ToGetDetailCustomerResult(customer)
+	return result, nil
 }

@@ -8,4 +8,5 @@ import (
 
 func Register(router *gin.RouterGroup, customerHandler *customerhandler.Handler) {
 	router.GET("/customers", customerHandler.GetAll)
+	router.GET("/customers/:id", customerHandler.GetDetail)
 }
