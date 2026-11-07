@@ -1,6 +1,8 @@
 package customer
 
-import "user-service/internal/domain/model"
+import (
+	"user-service/internal/domain/model"
+)
 
 type GetAllCustomerResult struct {
 	ID    int64

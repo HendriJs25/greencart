@@ -29,7 +29,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 		return
 	}
 
-	customers, metadata, err := h.customerService.GetAll(c.Request.Context(), request.ToPaginationInput(query.Pagination))
+	customers, metadata, err := h.customerService.GetAll(c.Request.Context(), request.ToGetAllCustomerQueryInput(query))
 	if err != nil {
 		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to get all customer")
 		response.InternalServerError(c)
