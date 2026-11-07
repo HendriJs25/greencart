@@ -77,3 +77,30 @@ func (h *Handler) GetDetail(c *gin.Context) {
 		Gin:  c,
 	})
 }
+
+func (h *Handler) Delete(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	err = h.customerService.Delete(c.Request.Context(), id)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrUserNotFound):
+			response.NotFound(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).WithField("customer_id", strID).Error("failed to delete customer")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Gin:  c,
+	})
+}

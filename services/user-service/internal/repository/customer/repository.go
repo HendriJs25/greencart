@@ -30,6 +30,7 @@ type repository struct {
 type Repository interface {
 	FindAll(ctx context.Context, params queryinput.GetAllCustomerQuery) ([]model.User, int64, error)
 	FindByID(ctx context.Context, id int64) (*model.User, error)
+	DeleteByID(ctx context.Context, id int64) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -69,6 +70,21 @@ func (r *repository) FindByID(ctx context.Context, id int64) (*model.User, error
 		return nil, fmt.Errorf("failed to find customer by id: %w", err)
 	}
 	return &customer, nil
+}
+
+func (r *repository) DeleteByID(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).Where("users.id = ?", id).
+		Where(`EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = users.id AND r.name = ?)`, constants.Customer).
+		Delete(&model.User{})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete customer by id: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return errConstant.ErrUserNotFound
+	}
+	return nil
 }
 
 func (r *repository) customerQuery(ctx context.Context) *gorm.DB {
