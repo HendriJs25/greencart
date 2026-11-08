@@ -3,6 +3,7 @@ package request
 import (
 	queryinput "user-service/internal/domain/query"
 	"user-service/internal/query"
+	"user-service/internal/services/customer"
 )
 
 type GetAllCustomersQuery struct {
@@ -10,6 +11,29 @@ type GetAllCustomersQuery struct {
 	SortingQuery
 
 	Search string `form:"search"`
+}
+
+type CreateCustomerRequest struct {
+	Name            string   `json:"name" validate:"required,notblank"`
+	Email           string   `json:"email" validate:"required,email"`
+	Password        string   `json:"password" validate:"required,validpassword"`
+	PasswordConfirm string   `json:"password_confirm" validate:"required,eqfield=Password"`
+	Phone           *string  `json:"phone" validate:"omitempty,number"`
+	Address         *string  `json:"address" validate:"omitempty,notblank"`
+	Lat             *float64 `json:"lat" validate:"omitempty,gte=-90,lte=90"`
+	Lng             *float64 `json:"lng" validate:"omitempty,gte=-180,lte=180"`
+}
+
+func ToCreateCustomerInput(req CreateCustomerRequest) customer.CreateCustomerInput {
+	return customer.CreateCustomerInput{
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: req.Password,
+		Phone:    req.Phone,
+		Address:  req.Address,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}
 }
 
 func ToGetAllCustomerQueryInput(params GetAllCustomersQuery) queryinput.GetAllCustomerQuery {

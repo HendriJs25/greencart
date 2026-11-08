@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"net/url"
@@ -184,7 +183,7 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 			EventID:          uuid.NewV4().String(),
 			ReceiverID:       user.ID,
 			ReceiverEmail:    normalizedEmail,
-			Subject:          "メールアドレス認証のお願い",
+			Subject:          "【GreenCart】メールアドレス認証のお願い",
 			Message:          "以下のリンクをクリックして、アカウント認証を完了してください: " + verifyURL.String(),
 			NotificationType: "EMAIL",
 		}
