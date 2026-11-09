@@ -30,7 +30,7 @@ func NewHandler(customerService customerservice.Service, validate *customValidat
 func (h *Handler) Create(c *gin.Context) {
 	var req request.CreateCustomerRequest
 
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c)
 		return
 	}

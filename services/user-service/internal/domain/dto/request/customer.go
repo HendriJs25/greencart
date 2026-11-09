@@ -14,14 +14,14 @@ type GetAllCustomersQuery struct {
 }
 
 type CreateCustomerRequest struct {
-	Name            string   `json:"name" validate:"required,notblank"`
-	Email           string   `json:"email" validate:"required,email"`
-	Password        string   `json:"password" validate:"required,validpassword"`
-	PasswordConfirm string   `json:"password_confirm" validate:"required,eqfield=Password"`
-	Phone           *string  `json:"phone" validate:"omitempty,number"`
-	Address         *string  `json:"address" validate:"omitempty,notblank"`
-	Lat             *float64 `json:"lat" validate:"omitempty,gte=-90,lte=90"`
-	Lng             *float64 `json:"lng" validate:"omitempty,gte=-180,lte=180"`
+	Name                 string   `json:"name" validate:"required,notblank"`
+	Email                string   `json:"email" validate:"required,email"`
+	Password             string   `json:"password" validate:"required,validpassword"`
+	PasswordConfirmation string   `json:"password_confirmation" validate:"required,eqfield=Password"`
+	Phone                *string  `json:"phone" validate:"omitempty,number"`
+	Address              *string  `json:"address" validate:"omitempty,notblank"`
+	Lat                  *float64 `json:"lat" validate:"omitempty,gte=-90,lte=90"`
+	Lng                  *float64 `json:"lng" validate:"omitempty,gte=-180,lte=180"`
 }
 
 func ToCreateCustomerInput(req CreateCustomerRequest) customer.CreateCustomerInput {

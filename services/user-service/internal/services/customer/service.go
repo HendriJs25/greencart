@@ -2,6 +2,7 @@ package customer
 
 import (
 	"context"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"strconv"
