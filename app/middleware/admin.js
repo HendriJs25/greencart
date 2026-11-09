@@ -1,10 +1,13 @@
-export default defineNuxtRouteMiddleware(async (to, from) => {
+export default defineNuxtRouteMiddleware(async () => {
   const authStore = useAuthStore()
-  
+
   await authStore.checkAuth()
 
-  // Cek role user
-  if (!authStore.user?.role || authStore.user.role !== 'Super Admin') {
+  if (!authStore.isAuthenticated) {
+    return navigateTo('/auth/signin')
+  }
+
+  if (!authStore.isSuperAdmin()) {
     return navigateTo('/')
   }
 })

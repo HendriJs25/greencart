@@ -27,6 +27,26 @@ func NewHandler(userService userservice.Service, validate *customValidator.Valid
 	}
 }
 
+func (h *Handler) GetMe(c *gin.Context) {
+	identity, ok := middleware.RequireIdentity(c)
+	if !ok {
+		return
+	}
+
+	user, err := h.userService.GetMe(c.Request.Context(), identity.UUID)
+	if err != nil {
+		logger.WithContext(c.Request.Context()).WithError(err).WithField("user_uuid", identity.UUID).Error("get me failed")
+		response.InternalServerError(c)
+		return
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: responsedto.ToGetMeResponse(user),
+		Gin:  c,
+	})
+}
+
 func (h *Handler) GetProfile(c *gin.Context) {
 	identity, ok := middleware.RequireIdentity(c)
 	if !ok {

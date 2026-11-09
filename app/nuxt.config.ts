@@ -11,6 +11,8 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    apiUserServerBaseUrl: '',
+
     public: {
       apiUserBaseUrl: '',
       apiOrderBaseUrl: '',

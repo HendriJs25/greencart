@@ -5,6 +5,12 @@ import (
 	"uuid"
 )
 
+type GetMeResponse struct {
+	RoleName []string  `json:"role"`
+	UUID     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Email    string    `json:"email"`
+}
 type GetProfileResponse struct {
 	RoleName []string  `json:"role"`
 	ID       int64     `json:"id"`
@@ -34,5 +40,14 @@ func ToGetProfileResponse(result *user.GetProfileResult) *GetProfileResponse {
 		Lng:      result.Lng,
 		Address:  result.Address,
 		PhotoURL: result.PhotoURL,
+	}
+}
+
+func ToGetMeResponse(result *user.GetMeResult) *GetMeResponse {
+	return &GetMeResponse{
+		RoleName: result.RoleName,
+		UUID:     result.UUID,
+		Name:     result.Name,
+		Email:    result.Email,
 	}
 }

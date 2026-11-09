@@ -1,9 +1,13 @@
-export default defineNuxtRouteMiddleware((to) => {
+export default defineNuxtRouteMiddleware(async (to) => {
+    if (!to.meta.requiresAuth) {
+        return
+    }
+
     const authStore = useAuthStore()
-    
-    authStore.checkAuth()
-    // Cek apakah route membutuhkan auth
-    if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+
+    await authStore.checkAuth()
+
+    if (!authStore.isAuthenticated) {
         return navigateTo('/auth/signin')
     }
 })

@@ -2,48 +2,58 @@ import { defineStore } from 'pinia'
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
-        token: null,
+        csrfToken: null,
         loading: false,
         error: null,
+        validationErrors: [],
         user: null
     }),
 
+    getters: {
+        isAuthenticated: (state) => !!state.user,
+        getUser: (state) => state.user,
+        userRole: (state) => state.user?.role
+    },
+
     actions: {
-        async signin (email, password) {
+        async signin(email, password) {
             try {
                 this.loading = true
                 this.error = null
+                this.validationErrors = []
 
-                const response = await fetch(`${useRuntimeConfig().public.apiUserBaseUrl}/auth/signin`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                })
+                const response = await fetch(
+                    `${useRuntimeConfig().public.apiUserBaseUrl}/auth/signin`,
+                    {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    }
+                )
 
                 const data = await response.json()
+
                 if (!response.ok) {
-                    throw new Error(data.message || 'Something went wrong!');
+                    if (Array.isArray(data.message)) {
+                        this.validationErrors = data.message
+                        throw new Error('Validation failed')
+                    }
+
+                    throw new Error(data.message || 'Something went wrong!')
                 }
 
-                this.user = {
-                    ...data.data,
-                    role: data.data.role
-                }
-                this.token = data.data.access_token
-
-                const tokenCookie = useCookie('token')
-                tokenCookie.value = this.token
-
-                const userCookie = useCookie('user')
-                userCookie.value = JSON.stringify(this.user)
-                // localStorage.setItem('token', this.token)
-                // localStorage.setItem('user', JSON.stringify(this.user))
+                this.user = data.data.user
+                this.csrfToken = data.data.csrf_token
 
                 return data
             } catch (error) {
-                this.error = error.message
+                if (this.validationErrors.length === 0) {
+                    this.error = error.message
+                }
+
                 throw error
             } finally {
                 this.loading = false
@@ -51,7 +61,7 @@ export const useAuthStore = defineStore('auth', {
         },
 
         isSuperAdmin() {
-            return this.user?.role === 'Super Admin'
+            return this.user?.role?.includes('admin') ?? false
         },
         
         logout() {
@@ -64,13 +74,38 @@ export const useAuthStore = defineStore('auth', {
             // localStorage.removeItem('token')
         },
 
-        checkAuth() {
-            const tokenCookie = useCookie('token')
-            const userCookie = useCookie('user')
-            if (tokenCookie.value && userCookie.value) {
-                this.token = tokenCookie.value
-                this.user = userCookie.value 
+        async checkAuth() {
+            const config = useRuntimeConfig()
+
+            const baseURL = import.meta.server
+                ? config.apiUserServerBaseUrl
+                : config.public.apiUserBaseUrl
+
+            const headers = import.meta.server
+                ? useRequestHeaders(['cookie'])
+                : undefined
+
+            const response = await fetch(`${baseURL}/me`, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers
+            })
+
+            if (response.status === 401) {
+                this.user = null
+                this.csrfToken = null
+                return false
             }
+
+            if (!response.ok) {
+                throw new Error('Failed to check authentication')
+            }
+
+            const data = await response.json()
+
+            this.user = data.data.user ?? data.data
+
+            return true
         },
 
         async signup(userData) {
@@ -234,7 +269,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     getters: {
-        isAuthenticated: (state) => !!state.token,
+        isAuthenticated: (state) => !!state.user,
         getUser: (state) => state.user,
         userRole: (state) => state.user?.role
     }

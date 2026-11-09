@@ -5,6 +5,12 @@ import (
 	"uuid"
 )
 
+type GetMeResult struct {
+	RoleName []string
+	UUID     uuid.UUID
+	Name     string
+	Email    string
+}
 type GetProfileResult struct {
 	RoleName []string
 	ID       int64
@@ -42,5 +48,18 @@ func ToGetProfileResult(user *model.User, photoURL *string) *GetProfileResult {
 		Lng:      user.Lng,
 		Address:  user.Address,
 		PhotoURL: photoURL,
+	}
+}
+
+func ToGetMeResult(user *model.User) *GetMeResult {
+	roleName := make([]string, 0, len(user.Roles))
+	for _, role := range user.Roles {
+		roleName = append(roleName, role.Name)
+	}
+	return &GetMeResult{
+		RoleName: roleName,
+		UUID:     user.UUID,
+		Name:     user.Name,
+		Email:    user.Email,
 	}
 }

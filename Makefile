@@ -25,6 +25,11 @@ deploy-user-service:
 	docker compose up -d user-service
 	$(MAKE) nginx-reload
 
+deploy-frontend:
+	docker compose build frontend
+	docker compose up -d frontend
+	$(MAKE) nginx-reload
+
 nginx-reload:
 	docker compose exec nginx nginx -t
 	docker compose exec nginx nginx -s reload
