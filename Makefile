@@ -14,7 +14,8 @@ setup: build
 	$(MAKE) s3-init
 	$(MAKE) migrate-up SERVICE=user-service
 	$(MAKE) seed SERVICE=user-service
-	docker compose up -d user-service
+	docker compose up -d --wait user-service
+	docker compose up -d frontend
 	docker compose up -d nginx
 
 deploy-user-service:
