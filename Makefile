@@ -15,12 +15,21 @@ setup: build
 	$(MAKE) migrate-up SERVICE=user-service
 	$(MAKE) seed SERVICE=user-service
 	docker compose up -d user-service
+	docker compose up -d nginx
 
 deploy-user-service:
 	docker compose build user-service
 	docker compose up -d --wait kafka greencart-redis user-service-db s3
 	$(MAKE) migrate-up SERVICE=user-service
 	docker compose up -d user-service
+	$(MAKE) nginx-reload
+
+nginx-reload:
+	docker compose exec nginx nginx -t
+	docker compose exec nginx nginx -s reload
+
+nginx-restart:
+	docker compose up -d --no-deps --force-recreate nginx
 
 kafka-init:
 	docker compose run --rm --no-deps kafka_initializer
