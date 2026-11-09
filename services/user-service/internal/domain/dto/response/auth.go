@@ -17,6 +17,7 @@ type UserInfo struct {
 	Phone *string   `json:"phone"`
 	Lat   *float64  `json:"lat"`
 	Lng   *float64  `json:"lng"`
+	Role  []string  `json:"role"`
 }
 
 func ToSignInResponse(result *authservice.SignInResult) SignInResponse {
@@ -29,6 +30,7 @@ func ToSignInResponse(result *authservice.SignInResult) SignInResponse {
 			Phone: result.Phone,
 			Lat:   result.Lat,
 			Lng:   result.Lng,
+			Role:  result.Role,
 		},
 	}
 }

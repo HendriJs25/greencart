@@ -23,6 +23,7 @@ type service struct {
 }
 
 type Service interface {
+	GetMe(ctx context.Context, userUUID uuid.UUID) (*GetMeResult, error)
 	GetProfile(ctx context.Context, userUUID uuid.UUID) (*GetProfileResult, error)
 	UploadProfileImage(ctx context.Context, userUUID uuid.UUID, file *multipart.FileHeader) (*string, error)
 	UpdateUserProfile(ctx context.Context, userUUID uuid.UUID, input UpdateUserDataInput) error
@@ -33,6 +34,16 @@ func NewService(userRepository userrepository.Repository, s3Storage storage.Stor
 		userRepository: userRepository,
 		s3Storage:      s3Storage,
 	}
+}
+
+func (s *service) GetMe(ctx context.Context, userUUID uuid.UUID) (*GetMeResult, error) {
+	user, err := s.userRepository.FindByUUID(ctx, userUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := ToGetMeResult(user)
+	return result, nil
 }
 
 func (s *service) GetProfile(ctx context.Context, userUUID uuid.UUID) (*GetProfileResult, error) {

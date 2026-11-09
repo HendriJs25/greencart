@@ -17,6 +17,7 @@ type SignInResult struct {
 	Phone                *string
 	Lat                  *float64
 	Lng                  *float64
+	Role                 []string
 }
 
 type SignInInput struct {
@@ -36,6 +37,10 @@ type ResetPasswordInput struct {
 }
 
 func ToSignInResult(user *model.User, accessToken *jwt.AccessToken, csrfToken string) *SignInResult {
+	roleName := make([]string, 0, len(user.Roles))
+	for _, role := range user.Roles {
+		roleName = append(roleName, role.Name)
+	}
 	return &SignInResult{
 		AccessToken:          accessToken.Value,
 		AccessTokenExpiresAt: accessToken.ExpiresAt,
@@ -46,5 +51,6 @@ func ToSignInResult(user *model.User, accessToken *jwt.AccessToken, csrfToken st
 		Phone:                user.Phone,
 		Lat:                  user.Lat,
 		Lng:                  user.Lng,
+		Role:                 roleName,
 	}
 }

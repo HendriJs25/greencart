@@ -14,7 +14,8 @@ setup: build
 	$(MAKE) s3-init
 	$(MAKE) migrate-up SERVICE=user-service
 	$(MAKE) seed SERVICE=user-service
-	docker compose up -d user-service
+	docker compose up -d --wait user-service
+	docker compose up -d frontend
 	docker compose up -d nginx
 
 deploy-user-service:
@@ -22,6 +23,11 @@ deploy-user-service:
 	docker compose up -d --wait kafka greencart-redis user-service-db s3
 	$(MAKE) migrate-up SERVICE=user-service
 	docker compose up -d user-service
+	$(MAKE) nginx-reload
+
+deploy-frontend:
+	docker compose build frontend
+	docker compose up -d frontend
 	$(MAKE) nginx-reload
 
 nginx-reload:
