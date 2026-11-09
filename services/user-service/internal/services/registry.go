@@ -25,6 +25,6 @@ func NewRegistry(repositories *repository.Registry, sessionRepository sessionrep
 		JWTService:      jwtService,
 		AuthService:     authservice.NewService(jwtService, repositories.UserRepository, sessionRepository, repositories.VerificationTokenRepository, repositories.Transaction, kafkaProducer, cfg.URL),
 		UserService:     userservice.NewService(repositories.UserRepository, s3Storage),
-		CustomerService: customerservice.NewService(repositories.CustomerRepository),
+		CustomerService: customerservice.NewService(repositories.CustomerRepository, repositories.UserRepository, repositories.Transaction, kafkaProducer),
 	}
 }

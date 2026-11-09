@@ -18,6 +18,16 @@ type GetDetailCustomerResult struct {
 	IsVerified bool
 }
 
+type CreateCustomerInput struct {
+	Name     string
+	Email    string
+	Password string
+	Phone    *string
+	Address  *string
+	Lat      *float64
+	Lng      *float64
+}
+
 type GetAllCustomerResult struct {
 	ID    int64
 	Name  string

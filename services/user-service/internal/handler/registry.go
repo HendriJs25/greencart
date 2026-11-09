@@ -22,6 +22,6 @@ func NewRegistry(services *services.Registry, validate *customValidator.Validate
 		HealthHandler:   healthhandler.NewHandler(),
 		AuthHandler:     authhandler.NewHandler(services.AuthService, validate),
 		UserHandler:     userhandler.NewHandler(services.UserService, validate),
-		CustomerHandler: customerhandler.NewHandler(services.CustomerService),
+		CustomerHandler: customerhandler.NewHandler(services.CustomerService, validate),
 	}
 }
