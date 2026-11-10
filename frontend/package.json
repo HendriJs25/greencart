@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@iconify-json/tabler": "^1.2.44",
-    "@nuxt/icon": "^2.6.2",
+    "@nuxt/icon": "1.15.0",
     "@pinia/nuxt": "^1.0.3",
     "@tabler/icons-webfont": "^3.51.0",
     "nuxt": "^3.21.11",
