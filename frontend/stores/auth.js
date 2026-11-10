@@ -6,7 +6,8 @@ export const useAuthStore = defineStore('auth', {
         user: null,
         csrfToken: null,
         loading: false,
-        error: null
+        error: null,
+        validationErrors: []
     }),
 
     getters: {
@@ -14,18 +15,23 @@ export const useAuthStore = defineStore('auth', {
     },
 
     actions: {
+
         async signin(email, password) {
             this.loading = true
             this.error = null
+            this.validationErrors = []
 
             try {
                 const result = await $fetch('/api/user/auth/signin', {
                     method: 'POST',
-                    body: { email, password }
+                    body: {
+                        email,
+                        password
+                    }
                 })
 
                 if (!result?.data?.user) {
-                    throw new Error('Respons login tidak valid')
+                    throw new Error('ログインの応答が正しくありません。')
                 }
 
                 this.user = result.data.user
@@ -38,22 +44,66 @@ export const useAuthStore = defineStore('auth', {
                     )
                 }
 
-                // Pastikan sesi benar-benar diterima backend
                 const authenticated = await this.checkAuth()
 
                 if (!authenticated) {
-                    throw new Error(
-                        'Login berhasil tetapi sesi tidak tersimpan'
-                    )
+                    throw new Error('ログインセッションを確認できませんでした。')
                 }
 
-                return true
+                return result
+
             } catch (err) {
                 this.user = null
-                this.error =
-                    err.data?.message ||
-                    err.message ||
-                    'Login gagal'
+
+                // $fetch / ofetch menempatkan respons backend di .data
+                const payload = err?.data ?? err?.response?._data ?? {}
+                const status = err?.response?.status ?? err?.statusCode
+
+                // Mendukung format:
+                // { message: [{ field, message }] }
+                // { errors: [{ field, message }] }
+                // { errors: { email: ["..."] } }
+                const rawErrors = Array.isArray(payload.message)
+                    ? payload.message
+                    : payload.errors ?? []
+
+                if (Array.isArray(rawErrors)) {
+                    this.validationErrors = rawErrors
+                        .filter(item =>
+                            item &&
+                            typeof item === 'object' &&
+                            item.field &&
+                            typeof item.message === 'string'
+                        )
+                        .map(item => ({
+                            field: String(item.field).toLowerCase().split('.').pop(),
+                            message: item.message
+                        }))
+                } else if (rawErrors && typeof rawErrors === 'object') {
+                    this.validationErrors = Object.entries(rawErrors)
+                        .flatMap(([field, messages]) =>
+                            (Array.isArray(messages) ? messages : [messages])
+                                .filter(message => typeof message === 'string')
+                                .map(message => ({
+                                    field: field.toLowerCase().split('.').pop(),
+                                    message
+                                }))
+                        )
+                }
+
+                if (this.validationErrors.length === 0) {
+                    const backendMessage = [
+                        payload.message,
+                        payload.error,
+                        payload.detail
+                    ].find(value => typeof value === 'string' && value.trim())
+
+                    this.error = status >= 500
+                        ? 'サーバーエラーが発生しました。しばらくしてからもう一度お試しください。'
+                        : backendMessage ||
+                        (status ? 'ログインに失敗しました。' : err.message || '接続エラーが発生しました。')
+                }
+
                 throw err
             } finally {
                 this.loading = false
