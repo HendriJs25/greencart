@@ -1,6 +1,7 @@
 package customer
 
 import (
+	"time"
 	"user-service/internal/domain/model"
 	"uuid"
 )
@@ -29,22 +30,24 @@ type CreateCustomerInput struct {
 }
 
 type GetAllCustomerResult struct {
-	ID    int64
-	Name  string
-	Email string
-	Phone *string
-	Photo *string
+	ID        int64
+	Name      string
+	Email     string
+	Phone     *string
+	Photo     *string
+	CreatedAt time.Time
 }
 
 func ToGetAllCustomerResult(customers []model.User) []GetAllCustomerResult {
 	result := make([]GetAllCustomerResult, 0, len(customers))
 	for _, customer := range customers {
 		result = append(result, GetAllCustomerResult{
-			ID:    customer.ID,
-			Name:  customer.Name,
-			Email: customer.Email,
-			Phone: customer.Phone,
-			Photo: customer.Photo,
+			ID:        customer.ID,
+			Name:      customer.Name,
+			Email:     customer.Email,
+			Phone:     customer.Phone,
+			Photo:     customer.Photo,
+			CreatedAt: customer.CreatedAt,
 		})
 	}
 	return result

@@ -1,16 +1,18 @@
 package response
 
 import (
+	"time"
 	"user-service/internal/services/customer"
 	"uuid"
 )
 
 type GetAllCustomerResponse struct {
-	ID    int64   `json:"id"`
-	Name  string  `json:"name"`
-	Email string  `json:"email"`
-	Phone *string `json:"phone"`
-	Photo *string `json:"photo"`
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Phone     *string   `json:"phone"`
+	Photo     *string   `json:"photo"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type GetDetailCustomerResponse struct {
@@ -30,11 +32,12 @@ func ToGetAllCustomerResponse(customers []customer.GetAllCustomerResult) []GetAl
 	result := make([]GetAllCustomerResponse, 0, len(customers))
 	for _, c := range customers {
 		result = append(result, GetAllCustomerResponse{
-			ID:    c.ID,
-			Name:  c.Name,
-			Email: c.Email,
-			Phone: c.Phone,
-			Photo: c.Photo,
+			ID:        c.ID,
+			Name:      c.Name,
+			Email:     c.Email,
+			Phone:     c.Phone,
+			Photo:     c.Photo,
+			CreatedAt: c.CreatedAt,
 		})
 	}
 	return result

@@ -7,8 +7,19 @@ const allowedRoutes = new Set([
     'GET me',
     'GET profile',
     'PATCH profile',
-    'PATCH profile/image-upload'
+    'PATCH profile/image-upload',
+    'GET admin/customers'
 ])
+
+const isCustomerDetail = method === 'GET' &&
+    /^admin\/customers\/[1-9]\d{0,18}$/.test(path)
+
+if (!allowedRoutes.has(`${method} ${path}`) && !isCustomerDetail) {
+    throw createError({
+        statusCode: 404,
+        statusMessage: 'Route not found'
+    })
+}
 
 export default defineEventHandler((event) => {
     const path = (getRouterParam(event, 'path') || '')
@@ -33,7 +44,11 @@ export default defineEventHandler((event) => {
         })
     }
 
-    const query = path === 'auth/verify-account' || path === 'auth/reset-password'
+    if (path === 'admin/customers' || isCustomerDetail) {
+        setResponseHeader(event, 'Cache-Control', 'private, no-store')
+    }
+
+    const query = ['auth/verify-account', 'auth/reset-password', 'admin/customers'].includes(path)
         ? getRequestURL(event).search
         : ''
     const target = `${baseURL.replace(/\/+$/, '')}/${path}${query}`
