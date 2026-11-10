@@ -45,6 +45,10 @@ async function saveProfile() {
 </script>
 
 <template>
+  <section class="container">
+    <div class="grid grid-cols-12">
+      <AccountSidebar />
+      <div class="lg:col-span-10 md:col-span-8 col-span-12">
   <main class="account-page">
     <h1>Profil Customer</h1>
 
@@ -76,6 +80,9 @@ async function saveProfile() {
 
     <p v-else>Data profil tidak tersedia.</p>
   </main>
+      </div>
+    </div>
+  </section>
 </template>
 
 <style scoped>

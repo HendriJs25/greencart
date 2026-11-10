@@ -2,22 +2,35 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
 
   modules: [
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@nuxt/icon'
   ],
 
+  css: [
+    '@tabler/icons-webfont/dist/tabler-icons.min.css',
+    '~/assets/css/theme.min.css'
+  ],
+
+  icon: {
+    serverBundle: {
+      collections: ['tabler']
+    },
+    fallbackToApi: false
+  },
+
   runtimeConfig: {
-    apiUserServerBaseUrl: ''
+    apiUserServerBaseUrl: '',
+    public: {
+      apiProductBaseUrl: '/api/v1'
+    }
   },
 
   app: {
     head: {
       title: 'GreenCart',
-      meta: [
-        {
-          name: 'viewport',
-          content: 'width=device-width, initial-scale=1'
-        }
-      ]
+      htmlAttrs: {
+        lang: 'ja'
+      }
     }
   }
 })
