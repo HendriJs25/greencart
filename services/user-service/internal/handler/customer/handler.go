@@ -102,7 +102,7 @@ func (h *Handler) GetDetail(c *gin.Context) {
 			response.NotFound(c, err)
 			return
 		default:
-			logger.WithContext(c.Request.Context()).WithError(err).WithField("customer_id", customer.ID).Error("failed to get customer detail")
+			logger.WithContext(c.Request.Context()).WithError(err).WithField("customer_id", id).Error("failed to get customer detail")
 			response.InternalServerError(c)
 			return
 		}

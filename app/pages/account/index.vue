@@ -164,7 +164,8 @@ import { onMounted } from 'vue'
 import { useOrderStore } from '~/stores/orders'
 
 definePageMeta({
-  middleware: ['auth'],
+    middleware: ['auth'],
+    requiresAuth: true
 })
 const router = useRouter()
 const authStore = useAuthStore()

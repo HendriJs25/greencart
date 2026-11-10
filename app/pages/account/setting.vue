@@ -106,9 +106,12 @@
 										<!-- input -->
 										<div class="mb-3">
 											<label class="inline-block text-gray-800 font-medium mb-2">Email</label>
-											<input v-model="formData.email" type="email"
-												class="border border-gray-300 text-gray-900 rounded-lg focus:shadow-[0_0_0_.25rem_rgba(10,173,10,.25)] focus:ring-green-600 focus:ring-0 focus:border-green-600 block p-2 px-3 disabled:opacity-50 disabled:pointer-events-none w-full text-base"
-												placeholder="example@gmail.com" />
+											<input
+                                                v-model="formData.email"
+                                                type="email"
+                                                readonly
+                                                class="form-control bg-gray-100"
+                                            />
 										</div>
 										<!-- input -->
 										<div class="mb-5">
@@ -125,6 +128,54 @@
 												placeholder="Phone number">
                                             </textarea>
 										</div>
+										<div class="grid grid-cols-2 gap-3 mb-4">
+                                            <div>
+                                                <label class="block mb-2">Latitude</label>
+                                                <input
+                                                    v-model.number="formData.lat"
+                                                    type="number"
+                                                    step="any"
+                                                    min="-90"
+                                                    max="90"
+                                                    class="form-control"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label class="block mb-2">Longitude</label>
+                                                <input
+                                                    v-model.number="formData.lng"
+                                                    type="number"
+                                                    step="any"
+                                                    min="-180"
+                                                    max="180"
+                                                    class="form-control"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            :disabled="isGettingLocation"
+                                            @click="useCurrentLocation"
+                                            class="text-green-600 mb-4"
+                                        >
+                                            {{ isGettingLocation
+                                                ? 'Mengambil lokasi...'
+                                                : 'Gunakan lokasi saya' }}
+                                        </button>
+
+                                        <p v-if="isProfileLoading" class="text-gray-500 mb-3">
+                                            Memuat profil...
+                                        </p>
+
+                                        <p v-if="errorMessage" class="text-red-600 mb-3">
+                                            {{ errorMessage }}
+                                        </p>
+
+                                        <p v-if="successMessage" class="text-green-600 mb-3">
+                                            {{ successMessage }}
+                                        </p>
                                         <!-- <div class="mb-5">
 											<label class="inline-block text-gray-800 font-medium mb-2">Photo</label>
 											<input 
@@ -137,7 +188,7 @@
 										</div> -->
 										<!-- button -->
 										<div class="mb-3">
-											<button :disabled="authStore.loading"  type="submit"
+											<button :disabled="authStore.loading || isProfileLoading"  type="submit"
 												class="btn inline-flex items-center gap-x-2 bg-green-600 text-white border-green-600 disabled:opacity-50 disabled:pointer-events-none hover:text-white hover:bg-green-700 hover:border-green-700 active:bg-green-700 active:border-green-700 focus:outline-none focus:ring-4 focus:ring-green-100">
 												<span v-if="authStore.loading">Loading...</span>
                                                 <span v-else>Save Details</span>
@@ -208,7 +259,8 @@ import { useRouter } from 'vue-router'
 import { onMounted } from 'vue'
 
 definePageMeta({
-  middleware: ['auth'],
+    middleware: ['auth'],
+    requiresAuth: true
 })
 const router = useRouter()
 const authStore = useAuthStore()
@@ -217,15 +269,85 @@ const latitude = ref(null)
 const longitude = ref(null)
 const error = ref(null)
 
-const formData = ref({
+const formData = reactive({
     name: '',
     email: '',
     phone: '',
     address: '',
     lat: null,
-    lng: null,
-    photo: ''
+    lng: null
 })
+
+const errorMessage = ref('')
+const successMessage = ref('')
+const isProfileLoading = ref(true)
+const isGettingLocation = ref(false)
+
+// Backend otomatis menambahkan prefix +81.
+// Kirim hanya angka nasional tanpa angka 0 awal.
+const normalizePhone = (phone) => {
+    let digits = String(phone)
+        .trim()
+        .replace(/[\s()-]/g, '')
+
+    if (digits.startsWith('+81')) {
+        digits = digits.slice(3)
+    } else if (/^81\d{9,10}$/.test(digits)) {
+        digits = digits.slice(2)
+    }
+
+    if (digits.startsWith('0')) {
+        digits = digits.slice(1)
+    }
+
+    if (!/^\d{9,10}$/.test(digits)) {
+        throw new Error('Nomor telepon Jepang tidak valid')
+    }
+
+    return Number(digits)
+}
+
+const parseCoordinate = (value, label, min, max) => {
+    if (value === null || value === '') {
+        throw new Error(`${label} wajib diisi`)
+    }
+
+    const number = Number(value)
+
+    if (!Number.isFinite(number) ||
+        number < min || number > max) {
+        throw new Error(`${label} tidak valid`)
+    }
+
+    return number
+}
+
+const useCurrentLocation = () => {
+    errorMessage.value = ''
+
+    if (!navigator.geolocation) {
+        errorMessage.value = 'Geolocation tidak didukung'
+        return
+    }
+
+    isGettingLocation.value = true
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            formData.lat = position.coords.latitude
+            formData.lng = position.coords.longitude
+            isGettingLocation.value = false
+        },
+        (error) => {
+            errorMessage.value = error.message
+            isGettingLocation.value = false
+        },
+        {
+            enableHighAccuracy: false,
+            timeout: 10000
+        }
+    )
+}
 
 const handleFileUpload = (event) => {
     const file = event.target.files[0]
@@ -257,53 +379,80 @@ const handleLogout = () => {
 }
 
 const handleSubmit = async () => {
+    errorMessage.value = ''
+    successMessage.value = ''
+
     try {
-        const userData = {
-            name: formData.value.name,
-            email: formData.value.email,
-            phone: formData.value.phone,
-            address: formData.value.address,
-            lat: `${latitude.value}`,
-            lng: `${longitude.value}`,
-            photo: "https://sdnnwvwdefoxcpdwbmra.supabase.co/storage/v1/object/public/bwa-sayur/public/uploads/beras.png"
+        if (!formData.name.trim()) {
+            throw new Error('Nama wajib diisi')
         }
 
-        await authStore.updateProfile(userData)
-        router.push('/account/setting')
+        if (!formData.address.trim()) {
+            throw new Error('Alamat wajib diisi')
+        }
+
+        const payload = {
+            name: formData.name.trim(),
+            phone: normalizePhone(formData.phone),
+            address: formData.address.trim(),
+            lat: parseCoordinate(
+                formData.lat, 'Latitude', -90, 90
+            ),
+            lng: parseCoordinate(
+                formData.lng, 'Longitude', -180, 180
+            )
+        }
+
+        await authStore.updateProfile(payload)
+
+        // Sinkronkan kembali nilai form
+        const profile = authStore.profile
+
+        if (profile) {
+            formData.phone = profile.phone ?? ''
+            formData.name = profile.name ?? ''
+            formData.address = profile.address ?? ''
+        }
+
+        successMessage.value =
+            'Profil berhasil diperbarui'
+
     } catch (error) {
-        // Error sudah ditangani di store
-        console.error('Update password error:', error)
+        errorMessage.value = error.message
     }
 }
 
 
 onMounted(async () => {
-    await authStore.getProfile()
+    isProfileLoading.value = true
+    errorMessage.value = ''
 
-    if (process.client && 'geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-        (position) => {
-            latitude.value = position.coords.latitude
-            longitude.value = position.coords.longitude
-        },
-        (err) => {
-            error.value = err.message
-        }
-        )
-    } else {
-        error.value = 'Geolocation not supported or not in browser'
-    }
+    try {
+        await authStore.getProfile()
 
-    if (authStore.user) {
-        formData.value = {
-            name: authStore.user.name || '',
-            email: authStore.user.email || '',
-            phone: authStore.user.phone || '',
-            address: authStore.user.address || '',
-            lat: authStore.user.lat || null,
-            lng: authStore.user.lng || null,
-            photo: authStore.user.photo || ''
+        const profile = authStore.profile
+
+        if (!profile) {
+            throw new Error('Data profil tidak ditemukan')
         }
+
+        Object.assign(formData, {
+            name: profile.name ?? '',
+            email: profile.email ?? '',
+            phone: profile.phone ?? '',
+            address: profile.address ?? '',
+            lat: profile.lat ?? null,
+            lng: profile.lng ?? null
+        })
+
+    } catch (error) {
+        errorMessage.value = error.message
+
+        if (!authStore.isAuthenticated) {
+            await navigateTo('/auth/signin')
+        }
+    } finally {
+        isProfileLoading.value = false
     }
 })
 
