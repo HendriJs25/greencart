@@ -29,6 +29,7 @@ services:
       NODE_ENV: production
       NITRO_HOST: 0.0.0.0
       NITRO_PORT: "3000"
+      NUXT_API_USER_SERVER_BASE_URL: http://user-service:8001/api/v1/users
       NUXT_PUBLIC_API_USER_BASE_URL: /api/v1/users
       NUXT_PUBLIC_API_ORDER_BASE_URL: /api/v1
       NUXT_PUBLIC_API_PRODUCT_BASE_URL: /api/v1

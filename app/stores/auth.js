@@ -6,14 +6,10 @@ export const useAuthStore = defineStore('auth', {
         loading: false,
         error: null,
         validationErrors: [],
-        user: null
+        user: null,
+        profile: null
     }),
 
-    getters: {
-        isAuthenticated: (state) => !!state.user,
-        getUser: (state) => state.user,
-        userRole: (state) => state.user?.role
-    },
 
     actions: {
         async signin(email, password) {
@@ -30,7 +26,7 @@ export const useAuthStore = defineStore('auth', {
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ email, password })
+                        body: JSON.stringify({email, password})
                     }
                 )
 
@@ -48,6 +44,13 @@ export const useAuthStore = defineStore('auth', {
                 this.user = data.data.user
                 this.csrfToken = data.data.csrf_token
 
+                if (import.meta.client && this.csrfToken) {
+                    sessionStorage.setItem(
+                        'greencart_csrf',
+                        this.csrfToken
+                    )
+                }
+
                 return data
             } catch (error) {
                 if (this.validationErrors.length === 0) {
@@ -63,7 +66,7 @@ export const useAuthStore = defineStore('auth', {
         isSuperAdmin() {
             return this.user?.role?.includes('admin') ?? false
         },
-        
+
         logout() {
             this.user = null
             this.token = null
@@ -77,33 +80,53 @@ export const useAuthStore = defineStore('auth', {
         async checkAuth() {
             const config = useRuntimeConfig()
 
-            const baseURL = import.meta.server
-                ? config.apiUserServerBaseUrl
-                : config.public.apiUserBaseUrl
+            const baseURL = (
+                import.meta.server
+                    ? config.apiUserServerBaseUrl
+                    : config.public.apiUserBaseUrl
+            ).replace(/\/$/, '')
 
             const headers = import.meta.server
                 ? useRequestHeaders(['cookie'])
-                : undefined
+                : {}
 
             const response = await fetch(`${baseURL}/me`, {
                 method: 'GET',
                 credentials: 'same-origin',
-                headers
+                headers: {
+                    ...headers,
+                    Accept: 'application/json'
+                }
             })
 
             if (response.status === 401) {
                 this.user = null
+                this.profile = null
                 this.csrfToken = null
+
+                if (import.meta.client) {
+                    sessionStorage.removeItem('greencart_csrf')
+                }
+
                 return false
             }
 
+            const result = await response.json()
+
             if (!response.ok) {
-                throw new Error('Failed to check authentication')
+                throw new Error(
+                    typeof result.message === 'string'
+                        ? result.message
+                        : 'Gagal memeriksa sesi login'
+                )
             }
 
-            const data = await response.json()
+            this.user = result.data
 
-            this.user = data.data.user ?? data.data
+            if (import.meta.client && !this.csrfToken) {
+                this.csrfToken =
+                    sessionStorage.getItem('greencart_csrf')
+            }
 
             return true
         },
@@ -112,22 +135,22 @@ export const useAuthStore = defineStore('auth', {
             try {
                 this.loading = true
                 this.error = null
-                
+
                 const response = await fetch(`${useRuntimeConfig().public.apiUserBaseUrl}/signup`, {
                     method: 'POST',
                     headers: {
-                    'Content-Type': 'application/json'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(userData)
                 })
-                
+
                 const data = await response.json()
-                
+
                 if (!response.ok) {
                     console.log(userData)
                     throw new Error(data.message || 'Terjadi kesalahan saat registrasi')
                 }
-                
+
                 return data
             } catch (error) {
                 this.error = error.message
@@ -137,7 +160,7 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        async forgotPassword (email) {
+        async forgotPassword(email) {
             try {
                 this.loading = true
                 this.error = null
@@ -147,7 +170,7 @@ export const useAuthStore = defineStore('auth', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify({email})
                 })
 
                 const data = await response.json()
@@ -164,7 +187,7 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        async verifyAccount ( token) {
+        async verifyAccount(token) {
             try {
                 this.loading = true
                 this.error = null
@@ -189,8 +212,8 @@ export const useAuthStore = defineStore('auth', {
                 this.loading = false
             }
         },
-        
-        async updatePasswordNoAuth (password_new, password_confirmation, token) {
+
+        async updatePasswordNoAuth(password_new, password_confirmation, token) {
             try {
                 this.loading = true
                 this.error = null
@@ -200,7 +223,7 @@ export const useAuthStore = defineStore('auth', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ password_new, password_confirmation  })
+                    body: JSON.stringify({password_new, password_confirmation})
                 })
 
                 const data = await response.json()
@@ -216,61 +239,115 @@ export const useAuthStore = defineStore('auth', {
                 this.loading = false
             }
         },
-        async getProfile () {
+
+        async getProfile() {
+            this.loading = true
+            this.error = null
+
             try {
-                this.loading = true
-        
-                const response = await fetch(`${useRuntimeConfig().public.apiUserBaseUrl}/auth/profile`, {
+                const baseURL = useRuntimeConfig()
+                    .public.apiUserBaseUrl.replace(/\/$/, '')
+
+                const response = await fetch(`${baseURL}/profile`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
                     headers: {
-                        'Authorization': `Bearer ${useCookie('token').value}`,
-                        'Content-Type': 'application/json'
+                        Accept: 'application/json'
                     }
                 })
-        
+
                 const result = await response.json()
-                
-                this.user = result.data
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        this.user = null
+                        this.profile = null
+                    }
+
+                    throw new Error(
+                        typeof result.message === 'string'
+                            ? result.message
+                            : 'Gagal mengambil profil customer'
+                    )
+                }
+
+                this.profile = result.data
 
                 return result
-                
-            } catch (err) {
-                this.error = err.message
+
+            } catch (error) {
+                this.error = error.message
                 throw error
             } finally {
                 this.loading = false
             }
         },
 
-        async updateProfile (userData) {
-            try {
-                this.loading = true
-                this.error = null
+        async updateProfile(userData) {
+            this.loading = true
+            this.error = null
 
-                const response = await fetch(`${useRuntimeConfig().public.apiUserBaseUrl}/auth/profile`, {
-                    method: 'PUT',
+            try {
+                const csrfToken = this.csrfToken ||
+                    (import.meta.client
+                        ? sessionStorage.getItem('greencart_csrf')
+                        : null)
+
+                if (!csrfToken) {
+                    throw new Error(
+                        'CSRF token tidak tersedia. Silakan login kembali.'
+                    )
+                }
+
+                const baseURL = useRuntimeConfig()
+                    .public.apiUserBaseUrl.replace(/\/$/, '')
+
+                const response = await fetch(`${baseURL}/profile`, {
+                    method: 'PATCH',
+                    credentials: 'same-origin',
                     headers: {
-                        'Authorization': `Bearer ${useCookie('token').value}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfToken
                     },
                     body: JSON.stringify(userData)
                 })
-                const data = await response.json()
+
+                const result = await response.json()
+
                 if (!response.ok) {
-                    throw new Error(data.message || 'Something went wrong!');
+                    throw new Error(
+                        typeof result.message === 'string'
+                            ? result.message
+                            : 'Gagal memperbarui profil customer'
+                    )
                 }
-                return data
+
+                // Backend tidak mengembalikan profil terbaru
+                await this.getProfile()
+
+                // Sinkronkan nama pada identitas user
+                if (this.user && this.profile) {
+                    this.user = {
+                        ...this.user,
+                        name: this.profile.name
+                    }
+                }
+
+                return result
+
             } catch (error) {
                 this.error = error.message
                 throw error
             } finally {
                 this.loading = false
             }
-        }
-    },
+        },
 
-    getters: {
-        isAuthenticated: (state) => !!state.user,
-        getUser: (state) => state.user,
-        userRole: (state) => state.user?.role
+        getters: {
+            isAuthenticated: (state) => !!state.user,
+            getUser: (state) => state.user,
+            userRole: (state) => state.user?.role
+        }
     }
 })
