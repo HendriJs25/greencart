@@ -24,7 +24,7 @@
                     id="searchProducts"
                   />
                   <button class="absolute right-0 top-0 p-3" type="submit">
-                    <Icon name="tabler:search" size="16" />
+                    <Icon name="tabler:search" mode="svg" size="16" />
                   </button>
                 </div>
               </form>
@@ -36,7 +36,7 @@
                 <!-- User Menu -->
                 <div>
                   <button @click="navigateTo(authStore.isAuthenticated ? '/account' : '/auth/signin')" class="text-gray-600">
-                    <Icon name="tabler:user" size="22" />
+                    <Icon name="tabler:user" mode="svg" size="22" />
                   </button>
                 </div>
 
