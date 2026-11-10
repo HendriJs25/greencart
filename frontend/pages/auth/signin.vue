@@ -1,5 +1,6 @@
+
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '~/stores/auth'
 
@@ -7,33 +8,121 @@ definePageMeta({
   layout: 'auth'
 })
 
+useHead({
+  title: 'ログイン | GreenCart'
+})
+
 const authStore = useAuthStore()
 
 const {
   error: loginError,
-  loading
+  loading,
+  validationErrors
 } = storeToRefs(authStore)
 
+// Form state
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const submitError = ref('')
 
-const validationErrors = computed(
-  () => authStore.validationErrors ?? []
-)
+// Frontend validation
+const localErrors = reactive({
+  email: '',
+  password: ''
+})
 
-const emailError = computed(
-  () => validationErrors.value.find(
-    item => item.field === 'email'
-  )?.message ?? ''
-)
+// Backend + frontend validation
+const emailError = computed(() => {
+  return localErrors.email ||
+    (validationErrors.value ?? []).find(
+      item => item.field === 'email'
+    )?.message || ''
+})
 
-const passwordError = computed(
-  () => validationErrors.value.find(
-    item => item.field === 'password'
-  )?.message ?? ''
-)
+const passwordError = computed(() => {
+  return localErrors.password ||
+    (validationErrors.value ?? []).find(
+      item => item.field === 'password'
+    )?.message || ''
+})
+
+const generalError = computed(() => {
+  return loginError.value || submitError.value
+})
+
+// Clear validation when user types
+function clearFieldError(field) {
+  localErrors[field] = ''
+
+  authStore.validationErrors =
+    (authStore.validationErrors ?? []).filter(
+      item => item.field !== field
+    )
+
+  authStore.error = null
+  submitError.value = ''
+}
+
+// Validate before sending request
+function validateForm() {
+  localErrors.email = ''
+  localErrors.password = ''
+
+  if (!email.value.trim()) {
+    localErrors.email = 'メールアドレスを入力してください。'
+  } else if (
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())
+  ) {
+    localErrors.email = '有効なメールアドレスを入力してください。'
+  }
+
+  if (!password.value) {
+    localErrors.password = 'パスワードを入力してください。'
+  }
+
+  return !localErrors.email && !localErrors.password
+}
+
+// Login
+async function handleSubmit() {
+  if (loading.value) return
+
+  submitError.value = ''
+  authStore.error = null
+  authStore.validationErrors = []
+
+  if (!validateForm()) return
+
+  try {
+    await authStore.signin(
+      email.value.trim(),
+      password.value
+    )
+
+    // Login successful
+    const destination = authStore.isAdmin ? '/dashboard' : '/'
+    await navigateTo(destination, { replace: true })
+
+  } catch (err) {
+    console.error('[GreenCart] Login failed:', err)
+
+    // Backend validation errors are handled by Pinia.
+    const hasFieldErrors =
+      (authStore.validationErrors ?? []).length > 0
+
+    if (!authStore.error && !hasFieldErrors) {
+      const backendMessage = err?.data?.message
+
+      submitError.value =
+        typeof backendMessage === 'string'
+          ? backendMessage
+          : 'ログインに失敗しました。もう一度お試しください。'
+    }
+  }
+}
 </script>
+
 
 <template>
   <section class="my-10">
@@ -165,21 +254,21 @@ const passwordError = computed(
                 </div>
 
                 <div
-                  v-if="authStore.error"
+                  v-if="generalError"
                   role="alert"
                   class="text-red-600 text-sm"
                 >
-                  {{ authStore.error }}
+                  {{ generalError }}
                 </div>
 
                 <!-- Submit -->
                 <div class="w-full grid">
                   <button
                     type="submit"
-                    :disabled="authStore.loading"
+                    :disabled="loading"
                     class="btn inline-flex items-center justify-center gap-x-2 bg-green-600 text-white border-green-600 disabled:opacity-50 disabled:pointer-events-none hover:text-white hover:bg-green-700 hover:border-green-700 active:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300"
                   >
-                    <span v-if="authStore.loading">
+                    <span v-if="loading">
                       ログイン中...
                     </span>
 
@@ -190,14 +279,6 @@ const passwordError = computed(
                 </div>
               </div>
 
-              <!-- Error -->
-              <div
-                v-if="errorMessage"
-                role="alert"
-                class="text-red-600 text-sm"
-              >
-                {{ errorMessage }}
-              </div>
             </div>
 
             <!-- Signup -->

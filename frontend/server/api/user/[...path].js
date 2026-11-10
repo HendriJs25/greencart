@@ -1,8 +1,13 @@
 const allowedRoutes = new Set([
     'POST auth/signin',
+    'POST auth/signup',
+    'POST auth/verify-account',
+    'POST auth/forgot-password',
+    'PATCH auth/reset-password',
     'GET me',
     'GET profile',
-    'PATCH profile'
+    'PATCH profile',
+    'PATCH profile/image-upload'
 ])
 
 export default defineEventHandler((event) => {
@@ -28,7 +33,10 @@ export default defineEventHandler((event) => {
         })
     }
 
-    const target = `${baseURL.replace(/\/+$/, '')}/${path}`
+    const query = path === 'auth/verify-account' || path === 'auth/reset-password'
+        ? getRequestURL(event).search
+        : ''
+    const target = `${baseURL.replace(/\/+$/, '')}/${path}${query}`
 
     return proxyRequest(event, target)
 })

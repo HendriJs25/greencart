@@ -1,4 +1,4 @@
-export default defineNuxtRouteMiddleware(async () => {
+export default defineNuxtRouteMiddleware(async (to) => {
     const authStore = useAuthStore()
 
     try {
@@ -7,7 +7,11 @@ export default defineNuxtRouteMiddleware(async () => {
         if (!authenticated) {
             return navigateTo('/auth/signin')
         }
-    } catch (err) {
+
+        if (to.meta.adminOnly && !authStore.isAdmin) {
+            return navigateTo('/')
+        }
+    } catch {
         return abortNavigation(
             createError({
                 statusCode: 502,

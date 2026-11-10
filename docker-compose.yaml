@@ -57,6 +57,7 @@ services:
       - user-service-data:/var/lib/postgresql/
     networks:
       - greencart-data-network
+      - greencart-storage-network
 
   greencart-redis:
     image: redis:7-alpine
@@ -170,6 +171,9 @@ services:
       RUSTFS_REGION: ap-northeast-1
     volumes:
       - s3-data:/data
+    networks:
+      - greencart-data-network
+      - greencart-storage-network
     healthcheck:
       test:
         - CMD-SHELL
@@ -191,6 +195,8 @@ services:
       AWS_DEFAULT_REGION: ap-northeast-1
       AWS_EC2_METADATA_DISABLED: "true"
       S3_BUCKET: greencart-uploads
+    networks:
+      - greencart-data-network
     entrypoint: [ "/bin/sh", "-ec" ]
     command:
       - |
@@ -275,3 +281,5 @@ networks:
   greencart-data-network:
     driver: bridge
     internal: true
+  greencart-storage-network:
+    driver: bridge

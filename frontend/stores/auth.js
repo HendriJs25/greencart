@@ -110,6 +110,37 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
+        async signup({ name, email, password, password_confirmation }) {
+            const result = await $fetch('/api/user/auth/signup', {
+                method: 'POST',
+                retry: 0,
+                body: { name, email, password, password_confirmation }
+            })
+
+            if (result?.status !== 'SUCCESS') {
+                throw new Error('Invalid signup response')
+            }
+
+            return result
+        },
+
+        forgotPassword(email) {
+            return $fetch('/api/user/auth/forgot-password', {
+                method: 'POST',
+                retry: 0,
+                body: { email }
+            })
+        },
+
+        resetPassword(token, { password_new, password_confirmation }) {
+            return $fetch('/api/user/auth/reset-password', {
+                method: 'PATCH',
+                retry: 0,
+                query: { token },
+                body: { password_new, password_confirmation }
+            })
+        },
+
         async checkAuth() {
             const fetcher = import.meta.server
                 ? useRequestFetch()
@@ -146,28 +177,75 @@ export const useAuthStore = defineStore('auth', {
             return result.data
         },
 
-        async updateProfile(payload) {
+        async uploadProfileImage(file) {
             const csrfToken = this.csrfToken ||
                 (import.meta.client
                     ? sessionStorage.getItem('greencart_csrf')
                     : null)
 
             if (!csrfToken) {
-                throw new Error(
-                    'CSRF token tidak tersedia. Silakan login kembali.'
-                )
+                throw createError({ statusCode: 401 })
             }
 
-            const result = await $fetch('/api/user/profile', {
+            const body = new FormData()
+            body.append('photo', file)
+
+            const result = await $fetch('/api/user/profile/image-upload', {
                 method: 'PATCH',
+                retry: 0,
                 headers: {
                     'X-CSRF-Token': csrfToken
                 },
-                body: payload
+                body
             })
 
-            await this.checkAuth()
+            const imageURL = result?.data?.image_url
+
+            if (result?.status !== 'SUCCESS' || typeof imageURL !== 'string' || !imageURL.trim()) {
+                throw new Error('Invalid profile image upload response')
+            }
+
+            return imageURL
+        },
+
+        async updateProfile({ name, phone, address, lat, lng }) {
+            const csrfToken = this.csrfToken ||
+                (import.meta.client
+                    ? sessionStorage.getItem('greencart_csrf')
+                    : null)
+
+            if (!csrfToken) {
+                throw createError({ statusCode: 401 })
+            }
+
+            const user = this.user
+            const result = await $fetch('/api/user/profile', {
+                method: 'PATCH',
+                retry: 0,
+                headers: {
+                    'X-CSRF-Token': csrfToken
+                },
+                body: { name, phone, address, lat, lng }
+            })
+
+            if (result?.status !== 'SUCCESS') {
+                throw new Error('Invalid profile update response')
+            }
+
+            if (user && this.user === user) {
+                user.name = name
+            }
+
             return result
-        }
+        },
+
+        getters: {
+            isAuthenticated: (state) => Boolean(state.user),
+
+            isAdmin: (state) =>
+                Array.isArray(state.user?.role) && state.user.role.includes('admin')
+        },
     }
+
+
 })

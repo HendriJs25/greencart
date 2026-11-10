@@ -61,7 +61,7 @@
             </div>
             <div class="lg:w-3/5 flex justify-end">
               <div class="flex flex-col md:flex-row items-center gap-3 md:gap-6">
-                <div class="text-gray-900">FreshCartのアプリで便利にお買い物</div>
+                <div class="text-gray-900">GreenCartのアプリで便利にお買い物</div>
                 <ul class="flex flex-row gap-2">
                   <li>
                     <img src="~/assets/images/appbutton/appstore-btn.svg" alt="App Store" class="h-10" />
@@ -80,8 +80,7 @@
           <div class="flex flex-col md:flex-row items-center gap-3">
             <div class="md:w-1/2">
               <span class="text-sm text-gray-500">
-                © {{ new Date().getFullYear() }} FreshCart — GreenCart ストア。 
-                提供: <a href="https://codescandy.com/" target="_blank" class="text-green-600">Codescandy</a>.
+                © {{ new Date().getFullYear() }} GreenCart ストア。
               </span>
             </div>
             <div class="md:w-1/2 flex md:justify-end items-center">
@@ -159,9 +158,9 @@
       ]
     },
     {
-      title: 'FreshCartプログラム',
+      title: 'GreenCartプログラム',
       links: [
-        { text: 'FreshCartプログラム', url: '/programs' },
+        { text: 'GreenCartプログラム', url: '/programs' },
         { text: 'ギフトカード', url: '/gift-cards' },
         { text: 'キャンペーン・クーポン', url: '/coupons' },
         { text: '広告について', url: '/ads' },

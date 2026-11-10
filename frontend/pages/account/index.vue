@@ -1,107 +1,206 @@
-
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({
   middleware: 'auth'
 })
 
+useHead({ title: 'プロフィール | GreenCart' })
+
+if (import.meta.server) {
+  useResponseHeader('Cache-Control').value = 'private, no-store'
+}
+
 const authStore = useAuthStore()
+const profileKey = `customer-profile:${authStore.user?.uuid ?? ''}`
 
-const { data: profile, error, pending, refresh } =
-  await useAsyncData('customer-profile', () => {
-    return authStore.getProfile()
-  })
+const { data: profile, status, error, refresh } = await useLazyAsyncData(
+  profileKey,
+  async () => {
+    const data = await authStore.getProfile()
 
-const name = ref('')
-const saving = ref(false)
-const saveError = ref('')
-const success = ref(false)
+    if (!data) {
+      throw createError({ statusCode: 502 })
+    }
 
-watch(profile, (value) => {
-  name.value = value?.name ?? ''
-}, { immediate: true })
+    return data
+  },
+  { pick: ['name', 'email', 'phone', 'address', 'photo', 'lat', 'lng'] }
+)
 
-async function saveProfile() {
-  saving.value = true
-  saveError.value = ''
-  success.value = false
+const failedPhoto = ref('')
+const sessionExpired = computed(() => error.value?.statusCode === 401)
+
+const loadError = computed(() => {
+  if (sessionExpired.value) {
+    return 'ログインの有効期限が切れました。もう一度ログインしてください。'
+  }
+
+  const message = error.value?.data?.message
+  return typeof message === 'string' && message
+    ? message
+    : 'プロフィールを読み込めませんでした。'
+})
+
+const photoInput = ref(null)
+const uploading = ref(false)
+const uploadError = ref('')
+const uploadSuccess = ref(false)
+const uploadNeedsSignin = ref(false)
+
+async function handlePhotoChange(event) {
+  const input = event.currentTarget
+  const file = input.files?.[0]
+  input.value = ''
+
+  if (!file || uploading.value || !profile.value) return
+
+  uploadError.value = ''
+  uploadSuccess.value = false
+  uploadNeedsSignin.value = false
+
+  if (!/\.(jpe?g|png)$/i.test(file.name) || file.size === 0) {
+    uploadError.value = 'JPGまたはPNGの画像ファイルを選択してください。'
+    return
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    uploadError.value = '2MB以下の画像を選択してください。'
+    return
+  }
+
+  uploading.value = true
 
   try {
-    await authStore.updateProfile({
-      name: name.value
-    })
+    const photo = await authStore.uploadProfileImage(file)
 
-    await refresh()
-    success.value = true
+    failedPhoto.value = ''
+    profile.value = { ...profile.value, photo }
+    uploadSuccess.value = true
   } catch (err) {
-    saveError.value =
-      err.data?.message || err.message || 'Gagal menyimpan profil'
+    const status = err?.response?.status ?? err?.statusCode
+    const message = (err?.data ?? err?.response?._data)?.message
+
+    if (status === 401 || status === 403) {
+      uploadNeedsSignin.value = true
+      uploadError.value = '写真を変更するには、もう一度ログインしてください。'
+    } else {
+      uploadError.value = typeof message === 'string' && message
+        ? message
+        : '写真をアップロードできませんでした。もう一度お試しください。'
+    }
   } finally {
-    saving.value = false
+    uploading.value = false
   }
 }
 </script>
 
 <template>
-  <section class="container">
+  <main class="container">
     <div class="grid grid-cols-12">
       <AccountSidebar />
-      <div class="lg:col-span-10 md:col-span-8 col-span-12">
-  <main class="account-page">
-    <h1>Profil Customer</h1>
 
-    <p v-if="pending">Memuat profil...</p>
+      <section class="lg:col-span-10 md:col-span-8 col-span-12 py-6 md:p-6 lg:p-10">
+        <h1 class="mb-6 text-xl">プロフィール</h1>
 
-    <div v-else-if="error">
-      <p role="alert">Gagal mengambil profil customer.</p>
-      <button @click="refresh()">Coba Lagi</button>
+        <p v-if="status === 'pending' || status === 'idle'" role="status">
+          プロフィールを読み込んでいます…
+        </p>
+
+        <div v-else-if="error" class="rounded-lg bg-red-50 p-4">
+          <p class="mb-3 text-sm text-red-800" role="alert">
+            {{ loadError }}
+          </p>
+
+          <NuxtLink v-if="sessionExpired" to="/auth/signin" class="text-green-600">
+            ログイン画面へ
+          </NuxtLink>
+
+          <button
+            v-else
+            type="button"
+            class="btn btn-sm bg-white text-gray-700 border-gray-300"
+            @click="refresh()"
+          >
+            もう一度読み込む
+          </button>
+        </div>
+
+        <div v-else-if="profile" class="card rounded-lg border border-gray-200 bg-white">
+          <div class="p-4 md:p-6">
+            <div class="flex flex-wrap items-center gap-4 border-b border-gray-200 pb-4">
+              <div class="flex w-16 h-16 items-center justify-center overflow-hidden rounded-full bg-green-50 text-green-600">
+                <img
+                  v-if="profile.photo && failedPhoto !== profile.photo"
+                  :src="profile.photo"
+                  alt=""
+                  referrerpolicy="no-referrer"
+                  class="w-full h-full object-cover"
+                  @error="failedPhoto = profile.photo"
+                />
+                <Icon v-else name="tabler:user" size="28" aria-hidden="true" />
+              </div>
+
+              <div class="profile-text min-w-0">
+                <h2 class="mb-1 text-lg">{{ profile.name || 'お客様' }}</h2>
+                <p class="mb-0 text-gray-600">
+                  {{ profile.email || 'メールアドレス未登録' }}
+                </p>
+              </div>
+            </div>
+
+            <div class="pt-4" :aria-busy="uploading">
+              <input
+                ref="photoInput"
+                type="file"
+                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                class="hidden"
+                :disabled="uploading"
+                @change="handlePhotoChange"
+              />
+
+              <button
+                type="button"
+                class="btn btn-sm inline-flex items-center gap-2 bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700 disabled:opacity-50 disabled:pointer-events-none"
+                :disabled="uploading"
+                aria-describedby="profile-photo-help"
+                @click="photoInput?.click()"
+              >
+                <Icon name="tabler:camera" size="16" aria-hidden="true" />
+                {{ uploading ? 'アップロード中…' : 'プロフィール写真を変更' }}
+              </button>
+
+              <p id="profile-photo-help" class="mt-2 mb-0 text-sm text-gray-600">
+                JPG・PNG（最大2MB）
+              </p>
+
+              <p v-if="uploadError" class="mt-2 mb-0 text-sm text-red-600" role="alert">
+                {{ uploadError }}
+              </p>
+
+              <NuxtLink v-if="uploadNeedsSignin" to="/auth/signin" class="text-sm text-green-600">
+                ログイン画面へ
+              </NuxtLink>
+
+              <p v-if="uploadSuccess" class="mt-2 mb-0 text-sm text-green-600" role="status">
+                プロフィール写真を更新しました。
+              </p>
+            </div>
+
+            <AccountProfileForm
+              :profile="profile"
+              @saved="profile = { ...profile, ...$event }"
+            />
+          </div>
+        </div>
+      </section>
     </div>
-
-    <form v-else-if="profile" @submit.prevent="saveProfile">
-      <label for="name">Nama</label>
-      <input id="name" v-model.trim="name" required />
-
-      <label for="email">Email</label>
-      <input
-        id="email"
-        :value="profile.email || authStore.user?.email"
-        readonly
-      />
-
-      <p v-if="saveError" role="alert">{{ saveError }}</p>
-      <p v-if="success">Profil berhasil diperbarui.</p>
-
-      <button :disabled="saving || !name">
-        {{ saving ? 'Menyimpan...' : 'Simpan Perubahan' }}
-      </button>
-    </form>
-
-    <p v-else>Data profil tidak tersedia.</p>
   </main>
-      </div>
-    </div>
-  </section>
 </template>
 
 <style scoped>
-.account-page {
-  width: min(720px, 92%);
-  margin: 48px auto;
-  min-height: 400px;
+.profile-text {
+  overflow-wrap: anywhere;
 }
-
-form {
-  display: grid;
-  gap: 14px;
-  margin-top: 24px;
-  padding: 24px;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-}
-
-input { padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
-button { padding: 12px; background: #00a000; color: white; border: 0; border-radius: 6px; cursor: pointer; }
-button:disabled { opacity: 0.6; }
 </style>
