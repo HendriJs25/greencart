@@ -237,6 +237,55 @@ export const useAuthStore = defineStore('auth', {
             }
 
             return result
+        },
+
+        async createCustomer(payload) {
+            const csrfToken = this.csrfToken ||
+                (import.meta.client
+                    ? sessionStorage.getItem('greencart_csrf')
+                    : null)
+
+            if (!csrfToken) {
+                throw createError({ statusCode: 401 })
+            }
+
+            const result = await $fetch('/api/user/admin/customers', {
+                method: 'POST',
+                retry: 0,
+                headers: {
+                    'X-CSRF-Token': csrfToken
+                },
+                body: payload
+            })
+
+            if (result?.status !== 'SUCCESS') {
+                throw new Error('Invalid customer create response')
+            }
+
+            return result
+        },
+
+        async deleteCustomer(id) {
+            const csrfToken = this.csrfToken ||
+                (import.meta.client
+                    ? sessionStorage.getItem('greencart_csrf')
+                    : null)
+
+            if (!csrfToken) {
+                throw createError({ statusCode: 401 })
+            }
+
+            const result = await $fetch(`/api/user/admin/customers/${id}`, {
+                method: 'DELETE',
+                retry: 0,
+                headers: {
+                    'X-CSRF-Token': csrfToken
+                }
+            })
+
+            if (result?.status !== 'SUCCESS') {
+                throw new Error('Invalid customer delete response')
+            }
         }
     },
     getters: {

@@ -91,6 +91,7 @@ const query = computed(() => ({
 }))
 
 const { data: result, status, error, refresh } = await useFetch('/api/user/admin/customers', {
+  key: 'admin-customers',
   query,
   lazy: true,
   transform(response) {
@@ -105,6 +106,10 @@ const { data: result, status, error, refresh } = await useFetch('/api/user/admin
     }
   }
 })
+
+const notice = useState('admin-customer-notice', () => '')
+const customerNotice = ref(notice.value)
+notice.value = ''
 
 const errorCode = computed(() => error.value?.statusCode)
 
@@ -151,13 +156,30 @@ function formatRegisteredDate(value) {
 
 <template>
   <section class="container">
-    <h1 class="mb-2 text-xl">顧客一覧</h1>
+    <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
+      <h1 class="mb-0 text-xl">顧客一覧</h1>
+      <NuxtLink
+        :to="{ path: '/dashboard/customers/create', query: customerPage(page).query }"
+        class="btn inline-flex items-center gap-2 bg-green-600 text-white border-green-600 hover:text-white hover:bg-green-700 hover:border-green-700"
+      >
+        <Icon name="tabler:user-plus" size="18" aria-hidden="true" />
+        顧客を追加
+      </NuxtLink>
+    </div>
 
     <nav class="mb-6 text-sm text-gray-600" aria-label="パンくずリスト">
       <NuxtLink to="/dashboard" class="text-green-600">ダッシュボード</NuxtLink>
       <span aria-hidden="true"> / </span>
       <span aria-current="page">顧客一覧</span>
     </nav>
+
+    <p
+      v-if="customerNotice"
+      class="mb-4 rounded-lg bg-gray-100 p-4 text-sm text-gray-700"
+      role="status"
+    >
+      {{ customerNotice }}
+    </p>
 
     <div class="card card-lg">
       <form class="flex flex-wrap gap-2 p-4 md:p-6" role="search" @submit.prevent="submitSearch">

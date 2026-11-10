@@ -8,7 +8,8 @@ const allowedRoutes = new Set([
     'GET profile',
     'PATCH profile',
     'PATCH profile/image-upload',
-    'GET admin/customers'
+    'GET admin/customers',
+    'POST admin/customers'
 ])
 
 export default defineEventHandler((event) => {
@@ -17,10 +18,10 @@ export default defineEventHandler((event) => {
 
     const method = event.node.req.method?.toUpperCase() || 'GET'
 
-    const isCustomerDetail = method === 'GET' &&
+    const isCustomerById = (method === 'GET' || method === 'DELETE') &&
         /^admin\/customers\/[1-9]\d{0,18}$/.test(path)
 
-    if (!allowedRoutes.has(`${method} ${path}`) && !isCustomerDetail) {
+    if (!allowedRoutes.has(`${method} ${path}`) && !isCustomerById) {
         throw createError({
             statusCode: 404,
             statusMessage: 'Route not found'
@@ -37,7 +38,7 @@ export default defineEventHandler((event) => {
         })
     }
 
-    if (path === 'admin/customers' || isCustomerDetail) {
+    if (path === 'admin/customers' || isCustomerById) {
         setResponseHeader(event, 'Cache-Control', 'private, no-store')
     }
 
