@@ -10,6 +10,12 @@ type UpdateUserDataRequest struct {
 	Address *string  `json:"address" validate:"required,notblank"`
 }
 
+type UpdatePasswordRequest struct {
+	CurrentPassword      string `json:"current_password" validate:"required"`
+	PasswordNew          string `json:"password_new" validate:"required,validpassword"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=PasswordNew"`
+}
+
 func ToUpdateUserDataInput(input UpdateUserDataRequest) user.UpdateUserDataInput {
 	return user.UpdateUserDataInput{
 		Name:    input.Name,

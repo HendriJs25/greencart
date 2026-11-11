@@ -342,7 +342,7 @@ func (s *service) ResetPassword(ctx context.Context, input ResetPasswordInput) e
 		return err
 	}
 
-	if err := s.sessionRepository.DeleteByUserUUID(ctx, user.UUID); err != nil {
+	if err := s.sessionRepository.DeleteByUserUUID(ctx, user.UUID, true, nil); err != nil {
 		return err
 	}
 

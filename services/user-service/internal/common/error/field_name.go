@@ -11,11 +11,12 @@ var AuthFieldNameJa = map[string]string{
 }
 
 var UserFieldNameJa = map[string]string{
-	"Name":    "名前",
-	"Phone":   "電話番号",
-	"Lat":     "緯度",
-	"Lng":     "経度",
-	"Address": "住所",
+	"Name":            "名前",
+	"Phone":           "電話番号",
+	"Lat":             "緯度",
+	"Lng":             "経度",
+	"Address":         "住所",
+	"CurrentPassword": "現在のパスワード",
 }
 
 var FieldNameJa = mergeFieldName(AuthFieldNameJa, UserFieldNameJa)

@@ -7,6 +7,7 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 	errConstant "user-service/internal/constants/error"
 	"user-service/internal/domain/model"
@@ -28,7 +29,7 @@ type Repository interface {
 	Set(ctx context.Context, ID string, session model.Session, ttl time.Duration) error
 	Get(ctx context.Context, ID string) (*model.Session, error)
 	Del(ctx context.Context, ID string) error
-	DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID) error
+	DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID, deleteAll bool, currentSessionID *string) error
 }
 
 func NewRepository(client redislib.Cmdable) Repository {
@@ -82,7 +83,7 @@ func (r *repository) Del(ctx context.Context, ID string) error {
 	return nil
 }
 
-func (r *repository) DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID) error {
+func (r *repository) DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID, deleteAll bool, currentSessionID *string) error {
 	indexKey := userSessionKey(userUUID)
 
 	sessionKeys, err := r.client.SMembers(ctx, indexKey).Result()
@@ -93,6 +94,11 @@ func (r *repository) DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID) e
 	keys := make([]string, 0, len(sessionKeys)+1)
 	keys = append(keys, sessionKeys...)
 	keys = append(keys, indexKey)
+	if !deleteAll {
+		if index := slices.Index(keys, sessionKey(*currentSessionID)); index != -1 {
+			keys = slices.Delete(keys, index, index+1)
+		}
+	}
 	if err := r.client.Del(ctx, keys...).Err(); err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)
 	}

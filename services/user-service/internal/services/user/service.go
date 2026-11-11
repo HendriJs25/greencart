@@ -10,16 +10,19 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"user-service/internal/common/helper"
 	errConstant "user-service/internal/constants/error"
 	"user-service/internal/logger"
+	sessionrepository "user-service/internal/repository/session"
 	userrepository "user-service/internal/repository/user"
 	"user-service/internal/storage"
 	"uuid"
 )
 
 type service struct {
-	userRepository userrepository.Repository
-	s3Storage      storage.Storage
+	userRepository    userrepository.Repository
+	sessionRepository sessionrepository.Repository
+	s3Storage         storage.Storage
 }
 
 type Service interface {
@@ -27,12 +30,14 @@ type Service interface {
 	GetProfile(ctx context.Context, userUUID uuid.UUID) (*GetProfileResult, error)
 	UploadProfileImage(ctx context.Context, userUUID uuid.UUID, file *multipart.FileHeader) (*string, error)
 	UpdateUserProfile(ctx context.Context, userUUID uuid.UUID, input UpdateUserDataInput) error
+	ChangePassword(ctx context.Context, userUUID uuid.UUID, currentPassword string, newPassword string, currentSessionID *string) error
 }
 
-func NewService(userRepository userrepository.Repository, s3Storage storage.Storage) Service {
+func NewService(userRepository userrepository.Repository, sessionRepository sessionrepository.Repository, s3Storage storage.Storage) Service {
 	return &service{
-		userRepository: userRepository,
-		s3Storage:      s3Storage,
+		userRepository:    userRepository,
+		sessionRepository: sessionRepository,
+		s3Storage:         s3Storage,
 	}
 }
 
@@ -152,6 +157,37 @@ func (s *service) UpdateUserProfile(ctx context.Context, userUUID uuid.UUID, inp
 	}
 
 	if err := s.userRepository.UpdateUserData(ctx, userUUID, updates); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *service) ChangePassword(ctx context.Context, userUUID uuid.UUID, currentPassword string, newPassword string, currentSessionID *string) error {
+	user, err := s.userRepository.FindByUUID(ctx, userUUID)
+	if err != nil {
+		return err
+	}
+
+	isVerify := helper.VerifyPassword(currentPassword, user.PasswordHash)
+	if !isVerify {
+		return errConstant.ErrPasswordIncorrect
+	}
+
+	hashedPassword, err := helper.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	err = s.sessionRepository.DeleteByUserUUID(ctx, user.UUID, false, currentSessionID)
+	if err != nil {
+		return err
+	}
+
+	err = s.userRepository.UpdateUserData(ctx, user.UUID, map[string]any{
+		"password_hash": hashedPassword,
+	})
+
+	if err != nil {
 		return err
 	}
 	return nil
