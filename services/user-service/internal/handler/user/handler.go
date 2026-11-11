@@ -141,3 +141,39 @@ func (h *Handler) UpdateUserProfileData(c *gin.Context) {
 		Gin:  c,
 	})
 }
+
+func (h *Handler) ChangePassword(c *gin.Context) {
+	identity, ok := middleware.RequireIdentity(c)
+	if !ok {
+		return
+	}
+
+	var req request.UpdatePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c)
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	err := h.userService.ChangePassword(c.Request.Context(), identity.UUID, req.CurrentPassword, req.PasswordNew, &identity.SessionID)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrPasswordIncorrect):
+			response.UnprocessableEntity(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).WithField("user_uuid", identity.UUID).Error("failed to change password")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code:    http.StatusOK,
+		Message: "パスワードの変更が完了しました",
+		Gin:     c,
+	})
+}
