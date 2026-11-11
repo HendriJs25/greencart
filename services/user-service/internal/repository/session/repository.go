@@ -27,6 +27,7 @@ type repository struct {
 type Repository interface {
 	Set(ctx context.Context, ID string, session model.Session, ttl time.Duration) error
 	Get(ctx context.Context, ID string) (*model.Session, error)
+	Del(ctx context.Context, ID string) error
 	DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID) error
 }
 
@@ -71,6 +72,14 @@ func (r *repository) Get(ctx context.Context, ID string) (*model.Session, error)
 		return nil, fmt.Errorf("failed to unmarshal session: %w", err)
 	}
 	return &session, nil
+}
+
+func (r *repository) Del(ctx context.Context, ID string) error {
+	err := r.client.Del(ctx, sessionKey(ID)).Err()
+	if err != nil {
+		return fmt.Errorf("failed to delete session: %w", err)
+	}
+	return nil
 }
 
 func (r *repository) DeleteByUserUUID(ctx context.Context, userUUID uuid.UUID) error {
