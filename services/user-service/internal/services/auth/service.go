@@ -38,6 +38,7 @@ type service struct {
 type Service interface {
 	SignIn(ctx context.Context, input SignInInput) (*SignInResult, error)
 	SignUp(ctx context.Context, input SignUpInput) error
+	SignOut(ctx context.Context, sessionID string) error
 	ForgotPassword(ctx context.Context, email string) error
 	VerifyEmail(ctx context.Context, token string) error
 	ResetPassword(ctx context.Context, input ResetPasswordInput) error
@@ -208,6 +209,10 @@ func (s *service) SignUp(ctx context.Context, input SignUpInput) error {
 	}
 
 	return nil
+}
+
+func (s *service) SignOut(ctx context.Context, sessionID string) error {
+	return s.sessionRepository.Del(ctx, sessionID)
 }
 
 func (s *service) ForgotPassword(ctx context.Context, email string) error {

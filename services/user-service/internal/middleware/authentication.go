@@ -19,6 +19,7 @@ type Identity struct {
 	Email         string
 	RoleName      []string
 	CSRFTokenHash string
+	SessionID     string
 }
 
 type Authentication struct {
@@ -78,6 +79,7 @@ func (a *Authentication) Handle() gin.HandlerFunc {
 			Email:         session.Email,
 			RoleName:      session.RoleName,
 			CSRFTokenHash: session.CSRFTokenHash,
+			SessionID:     claims.SessionID,
 		})
 
 		c.Next()

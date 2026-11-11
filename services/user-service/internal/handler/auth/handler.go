@@ -10,6 +10,7 @@ import (
 	"user-service/internal/domain/dto/request"
 	responsedto "user-service/internal/domain/dto/response"
 	"user-service/internal/logger"
+	"user-service/internal/middleware"
 	authservice "user-service/internal/services/auth"
 
 	"github.com/gin-gonic/gin"
@@ -95,6 +96,27 @@ func (h *Handler) SignUp(c *gin.Context) {
 		Code:    http.StatusCreated,
 		Message: "アカウントの登録が完了しました",
 		Gin:     c,
+	})
+}
+
+func (h *Handler) SignOut(c *gin.Context) {
+	identity, ok := middleware.RequireIdentity(c)
+	if !ok {
+		return
+	}
+
+	err := h.authService.SignOut(c.Request.Context(), identity.SessionID)
+	if err != nil {
+		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to sign out")
+		response.InternalServerError(c)
+		return
+	}
+
+	cookie.ClearAccessToken(c)
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Gin:  c,
 	})
 }
 
