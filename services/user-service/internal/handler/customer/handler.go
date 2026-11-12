@@ -116,6 +116,44 @@ func (h *Handler) GetDetail(c *gin.Context) {
 	})
 }
 
+func (h *Handler) Update(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	var req request.UpdateCustomerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c)
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	input := request.ToUpdateCustomerInput(req)
+
+	err = h.customerService.UpdateData(c.Request.Context(), id, input)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrUserNotFound):
+			response.NotFound(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).WithField("customer_id", id).Error("failed to update customer")
+			response.InternalServerError(c)
+			return
+		}
+	}
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Gin:  c,
+	})
+}
+
 func (h *Handler) Delete(c *gin.Context) {
 	strID := c.Param("id")
 	id, err := strconv.ParseInt(strID, 10, 64)

@@ -19,7 +19,11 @@ var UserFieldNameJa = map[string]string{
 	"CurrentPassword": "現在のパスワード",
 }
 
-var FieldNameJa = mergeFieldName(AuthFieldNameJa, UserFieldNameJa)
+var CustomerFieldNameJa = map[string]string{
+	"IsVerified": "認証状態",
+}
+
+var FieldNameJa = mergeFieldName(AuthFieldNameJa, UserFieldNameJa, CustomerFieldNameJa)
 
 func mergeFieldName(mapsToMerge ...map[string]string) map[string]string {
 	result := make(map[string]string)
