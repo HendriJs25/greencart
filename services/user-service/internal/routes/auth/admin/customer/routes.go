@@ -11,5 +11,6 @@ func Register(router *gin.RouterGroup, customerHandler *customerhandler.Handler)
 	router.POST("/customers", middleware.CSRFProtection(), customerHandler.Create)
 	router.GET("/customers", customerHandler.GetAll)
 	router.GET("/customers/:id", customerHandler.GetDetail)
+	router.PATCH("/customers/:id", middleware.CSRFProtection(), customerHandler.Update)
 	router.DELETE("/customers/:id", middleware.CSRFProtection(), customerHandler.Delete)
 }

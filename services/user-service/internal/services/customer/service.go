@@ -32,6 +32,7 @@ type Service interface {
 	Create(ctx context.Context, input CreateCustomerInput) error
 	GetAll(ctx context.Context, params queryinput.GetAllCustomerQuery) ([]GetAllCustomerResult, *query.Meta, error)
 	GetDetail(ctx context.Context, id int64) (*GetDetailCustomerResult, error)
+	UpdateData(ctx context.Context, id int64, input UpdateCustomerInput) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -59,6 +60,12 @@ func (s *service) Create(ctx context.Context, input CreateCustomerInput) error {
 		return err
 	}
 
+	var formatedPhone *string
+	if input.Phone != nil {
+		tmp := fmt.Sprintf("+81%d", *input.Phone)
+		formatedPhone = &tmp
+	}
+
 	var payload []byte
 	var userID int64
 
@@ -76,7 +83,7 @@ func (s *service) Create(ctx context.Context, input CreateCustomerInput) error {
 			Name:         input.Name,
 			Email:        normalizedEmail,
 			PasswordHash: hashedPassword,
-			Phone:        input.Phone,
+			Phone:        formatedPhone,
 			Address:      input.Address,
 			Lat:          input.Lat,
 			Lng:          input.Lng,
@@ -137,6 +144,29 @@ func (s *service) GetDetail(ctx context.Context, id int64) (*GetDetailCustomerRe
 
 	result := ToGetDetailCustomerResult(customer)
 	return result, nil
+}
+
+func (s *service) UpdateData(ctx context.Context, id int64, input UpdateCustomerInput) error {
+	var formatedPhone *string
+	if input.Phone != nil {
+		tmp := fmt.Sprintf("+81%d", *input.Phone)
+		formatedPhone = &tmp
+	}
+
+	updates := map[string]any{
+		"name":        input.Name,
+		"phone":       formatedPhone,
+		"address":     input.Address,
+		"lat":         input.Lat,
+		"lng":         input.Lng,
+		"is_verified": input.IsVerified,
+	}
+
+	err := s.customerRepository.UpdateData(ctx, id, updates)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id int64) error {

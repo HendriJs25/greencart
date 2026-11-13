@@ -23,10 +23,19 @@ type CreateCustomerInput struct {
 	Name     string
 	Email    string
 	Password string
-	Phone    *string
+	Phone    *int64
 	Address  *string
 	Lat      *float64
 	Lng      *float64
+}
+
+type UpdateCustomerInput struct {
+	Name       string
+	Phone      *int64
+	Address    *string
+	Lat        *float64
+	Lng        *float64
+	IsVerified *bool
 }
 
 type GetAllCustomerResult struct {
