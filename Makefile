@@ -9,12 +9,14 @@ check-service:
 	@test -n "$(SERVICE)" || (echo "SERVICE is required. Example: make up SERVICE=user-service" && exit 1)
 
 setup: build
-	docker compose up -d --wait kafka greencart-redis user-service-db s3
+	docker compose up -d --wait kafka greencart-redis user-service-db product-service-db s3
 	$(MAKE) kafka-init
 	$(MAKE) s3-init
 	$(MAKE) migrate-up SERVICE=user-service
+	# $(MAKE) migrate-up SERVICE=product-service
 	$(MAKE) seed SERVICE=user-service
 	docker compose up -d --wait user-service
+	docker compose up -d --wait product-service
 	docker compose up -d frontend
 	docker compose up -d nginx
 
@@ -23,6 +25,13 @@ deploy-user-service:
 	docker compose up -d --wait kafka greencart-redis user-service-db s3
 	$(MAKE) migrate-up SERVICE=user-service
 	docker compose up -d user-service
+	$(MAKE) nginx-reload
+
+deploy-product-service:
+	docker compose build product-service
+	docker compose up -d --wait kafka greencart-redis product-service-db s3
+	$(MAKE) migrate-up SERVICE=product-service
+	docker compose up -d product-service
 	$(MAKE) nginx-reload
 
 deploy-frontend:
