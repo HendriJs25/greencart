@@ -8,6 +8,10 @@ server {
         proxy_pass http://${API_USER_SERVICE_HOST}:8001;
     }
 
+    location /api/v1/products/ {
+        proxy_pass http://${API_PRODUCT_SERVICE_HOST}:8002;
+    }
+
    location / {
         proxy_pass http://${FRONTEND_HOST}:3000;
    }

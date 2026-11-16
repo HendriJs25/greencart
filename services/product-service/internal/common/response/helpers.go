@@ -1,0 +1,74 @@
+package response
+
+import (
+	"net/http"
+	errWrap "product-service/internal/common/error"
+	errConstant "product-service/internal/constants/error"
+
+	"github.com/gin-gonic/gin"
+)
+
+func InternalServerError(c *gin.Context) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusInternalServerError,
+		Err:  errConstant.ErrInternalServerError,
+		Gin:  c,
+	})
+}
+
+func BadRequest(c *gin.Context) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusBadRequest,
+		Err:  errConstant.ErrBadRequest,
+		Gin:  c,
+	})
+}
+
+func ValidationError(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code:    http.StatusUnprocessableEntity,
+		Message: errWrap.ErrValidationResponse(err),
+		Err:     err,
+		Gin:     c,
+	})
+}
+
+func UnprocessableEntity(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusUnprocessableEntity,
+		Err:  err,
+		Gin:  c,
+	})
+}
+
+func Unauthorized(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusUnauthorized,
+		Err:  err,
+		Gin:  c,
+	})
+}
+
+func Forbidden(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusForbidden,
+		Err:  err,
+		Gin:  c,
+	})
+}
+
+func Conflict(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusConflict,
+		Err:  err,
+		Gin:  c,
+	})
+}
+
+func NotFound(c *gin.Context, err error) {
+	HTTPResponse(ParamHTTPResponse{
+		Code: http.StatusNotFound,
+		Err:  err,
+		Gin:  c,
+	})
+}
