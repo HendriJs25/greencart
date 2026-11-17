@@ -14,6 +14,7 @@ import (
 	"product-service/internal/logger"
 	"product-service/internal/messaging/kafka"
 	"product-service/internal/middleware"
+	"product-service/internal/repository"
 	sessionrepository "product-service/internal/repository/session"
 	"product-service/internal/routes"
 	"product-service/internal/services"
@@ -89,9 +90,10 @@ func runServer() error {
 		return fmt.Errorf("failed to initialize s3 storage: %w", err)
 	} */
 
+	repositoryRegistry := repository.NewRegistry(postgresDB.DB)
 	sessionRepository := sessionrepository.NewRepository(redisDB.Client)
-	serviceRegistry := services.NewRegistry(cfg)
-	handlerRegistry := handler.NewRegistry()
+	serviceRegistry := services.NewRegistry(repositoryRegistry, cfg)
+	handlerRegistry := handler.NewRegistry(serviceRegistry)
 	authenticationMiddleware := middleware.NewAuthentication(serviceRegistry.JWTService, sessionRepository)
 
 	bootstrap.SetupAppMode(cfg.App)
