@@ -14,6 +14,15 @@ type GetAllCategoriesResult struct {
 	Status       enum.CategoryStatus
 }
 
+type CreateCategoryInput struct {
+	ParentSlug  *string
+	Name        string
+	Icon        string
+	Status      enum.CategoryStatus
+	Slug        string
+	Description *string
+}
+
 func ToGetAllCategoriesResult(categories []model.Category) []GetAllCategoriesResult {
 	result := make([]GetAllCategoriesResult, 0, len(categories))
 	for _, category := range categories {

@@ -3,9 +3,14 @@ package validator
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+)
+
+var (
+	lowercaseHyphenRegex = regexp.MustCompile(`^[a-z-]+$`)
 )
 
 func New() (*validator.Validate, error) {
@@ -29,7 +34,8 @@ func New() (*validator.Validate, error) {
 
 func RegisterCustomValidators(v *validator.Validate) error {
 	validations := map[string]validator.Func{
-		"notblank": notBlank,
+		"lowercase_hyphen": lowercaseHyphen,
+		"notblank":         notBlank,
 	}
 
 	for tag, fn := range validations {
@@ -42,4 +48,8 @@ func RegisterCustomValidators(v *validator.Validate) error {
 
 func notBlank(fl validator.FieldLevel) bool {
 	return strings.TrimSpace(fl.Field().String()) != ""
+}
+
+func lowercaseHyphen(fl validator.FieldLevel) bool {
+	return lowercaseHyphenRegex.MatchString(fl.Field().String())
 }
