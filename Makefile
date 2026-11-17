@@ -13,7 +13,7 @@ setup: build
 	$(MAKE) kafka-init
 	$(MAKE) s3-init
 	$(MAKE) migrate-up SERVICE=user-service
-	# $(MAKE) migrate-up SERVICE=product-service
+	$(MAKE) migrate-up SERVICE=product-service
 	$(MAKE) seed SERVICE=user-service
 	docker compose up -d --wait user-service
 	docker compose up -d --wait product-service
