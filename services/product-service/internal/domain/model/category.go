@@ -10,7 +10,7 @@ type Category struct {
 	ID           int64
 	ParentID     *int64
 	Name         string
-	Icon         string
+	Icon         *string
 	Status       bool
 	Slug         string
 	Description  *string

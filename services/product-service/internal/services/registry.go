@@ -5,6 +5,7 @@ import (
 	"product-service/internal/repository"
 	categoryservice "product-service/internal/services/category"
 	jwtservice "product-service/internal/services/jwt"
+	"product-service/internal/storage"
 )
 
 type Registry struct {
@@ -12,10 +13,10 @@ type Registry struct {
 	CategoryService categoryservice.Service
 }
 
-func NewRegistry(repositories *repository.Registry, cfg *config.Config) *Registry {
+func NewRegistry(repositories *repository.Registry, s3Storage storage.Storage, cfg *config.Config) *Registry {
 	jwtService := jwtservice.NewService(cfg.JWT)
 	return &Registry{
 		JWTService:      jwtService,
-		CategoryService: categoryservice.NewService(repositories.CategoryRepository),
+		CategoryService: categoryservice.NewService(repositories.CategoryRepository, s3Storage),
 	}
 }

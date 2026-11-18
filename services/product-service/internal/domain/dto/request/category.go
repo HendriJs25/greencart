@@ -8,7 +8,6 @@ import (
 type CreateCategoryRequest struct {
 	ParentSlug  *string             `json:"parent_slug"`
 	Name        string              `json:"name" validate:"required,notblank"`
-	Icon        string              `json:"icon" validate:"required,notblank"`
 	Status      enum.CategoryStatus `json:"status" validate:"required,oneof=有効 無効"`
 	Slug        string              `json:"slug" validate:"required,lowercase_hyphen"`
 	Description *string             `json:"description"`
@@ -18,7 +17,6 @@ func ToCreateCategoryInput(req CreateCategoryRequest) category.CreateCategoryInp
 	return category.CreateCategoryInput{
 		ParentSlug:  req.ParentSlug,
 		Name:        req.Name,
-		Icon:        req.Icon,
 		Status:      req.Status,
 		Slug:        req.Slug,
 		Description: req.Description,

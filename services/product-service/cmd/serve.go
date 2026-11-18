@@ -19,6 +19,7 @@ import (
 	sessionrepository "product-service/internal/repository/session"
 	"product-service/internal/routes"
 	"product-service/internal/services"
+	"product-service/internal/storage"
 	"syscall"
 	"time"
 
@@ -82,18 +83,18 @@ func runServer() error {
 		}
 	}()
 
-	/* s3Storage, err := func() (storage.Storage, error) {
+	s3Storage, err := func() (storage.Storage, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		return storage.NewS3Storage(ctx, cfg.AWS)
 	}()
 	if err != nil {
 		return fmt.Errorf("failed to initialize s3 storage: %w", err)
-	} */
+	}
 
 	repositoryRegistry := repository.NewRegistry(postgresDB.DB)
 	sessionRepository := sessionrepository.NewRepository(redisDB.Client)
-	serviceRegistry := services.NewRegistry(repositoryRegistry, cfg)
+	serviceRegistry := services.NewRegistry(repositoryRegistry, s3Storage, cfg)
 	handlerRegistry := handler.NewRegistry(serviceRegistry, v)
 	authenticationMiddleware := middleware.NewAuthentication(serviceRegistry.JWTService, sessionRepository)
 
