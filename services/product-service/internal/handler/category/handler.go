@@ -163,3 +163,30 @@ func (h *Handler) UploadIconImage(c *gin.Context) {
 		Gin: c,
 	})
 }
+
+func (h *Handler) Delete(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	err = h.categoryService.Delete(c.Request.Context(), id)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrCategoryHasChildren):
+			response.Conflict(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithField("category_id", id).WithError(err).Error("failed to delete category")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Gin:  c,
+	})
+}

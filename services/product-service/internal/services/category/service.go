@@ -30,6 +30,7 @@ type Service interface {
 	GetAllSlugForOptions(ctx context.Context) ([]string, error)
 	Create(ctx context.Context, input CreateCategoryInput) error
 	UploadIconImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error)
+	Delete(ctx context.Context, id int64) error
 }
 
 func NewService(categoryRepository categoryrepository.Repository, s3Storage storage.Storage) Service {
@@ -46,11 +47,17 @@ func (s *service) GetAll(ctx context.Context) ([]GetAllCategoriesResult, error) 
 	}
 
 	result := make([]GetAllCategoriesResult, 0, len(categories))
+	var iconURL *string
 	for _, category := range categories {
+		if category.Icon != nil {
+			iconURL = s.s3Storage.GetFileURL(*category.Icon)
+		} else {
+			iconURL = nil
+		}
 		result = append(result, GetAllCategoriesResult{
 			ID:           category.ID,
 			Name:         category.Name,
-			Icon:         s.s3Storage.GetFileURL(*category.Icon),
+			Icon:         iconURL,
 			Slug:         category.Slug,
 			TotalProduct: category.TotalProduct,
 			Status:       enum.CategoryStatusFromBool(category.Status),
@@ -70,11 +77,16 @@ func (s *service) GetByID(ctx context.Context, id int64) (*GetDetailCategoryResu
 		parentSlug = &category.Parent.Slug
 	}
 
+	var iconURL *string
+	if category.Icon != nil {
+		iconURL = s.s3Storage.GetFileURL(*category.Icon)
+	}
+
 	result := &GetDetailCategoryResult{
 		ID:          category.ID,
 		ParentSlug:  parentSlug,
 		Name:        category.Name,
-		Icon:        s.s3Storage.GetFileURL(*category.Icon),
+		Icon:        iconURL,
 		Status:      enum.CategoryStatusFromBool(category.Status),
 		Slug:        category.Slug,
 		Description: category.Description,
@@ -197,4 +209,8 @@ func validateProfileImage(file *multipart.FileHeader) (string, error) {
 	}
 
 	return contentType, nil
+}
+
+func (s *service) Delete(ctx context.Context, id int64) error {
+	return s.categoryRepository.Delete(ctx, id)
 }

@@ -13,4 +13,5 @@ func Register(router *gin.RouterGroup, categoryHandler *categoryhandler.Handler)
 	router.GET("/categories/options-categories-slugs", categoryHandler.GetAllSlugForOptions)
 	router.POST("/categories", middleware.CSRFProtection(), categoryHandler.Create)
 	router.POST("/categories/:id/icon", middleware.CSRFProtection(), categoryHandler.UploadIconImage)
+	router.DELETE("/categories/:id", middleware.CSRFProtection(), categoryHandler.Delete)
 }

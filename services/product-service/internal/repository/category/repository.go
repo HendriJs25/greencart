@@ -22,6 +22,7 @@ type Repository interface {
 	IsSlugExist(ctx context.Context, slug string) (bool, error)
 	Create(ctx context.Context, category *model.Category) error
 	UpdateIconKeyByID(ctx context.Context, id int64, iconKey string) error
+	Delete(ctx context.Context, id int64) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -77,7 +78,7 @@ func (r *repository) FindByID(ctx context.Context, id int64) (*model.Category, e
 
 func (r *repository) IsSlugExist(ctx context.Context, slug string) (bool, error) {
 	var count int64
-	err := r.db.WithContext(ctx).Model(&model.Category{}).Where("slug = ?", slug).Count(&count).Error
+	err := r.db.WithContext(ctx).Model(&model.Category{}).Where("slug = ? AND deleted_at IS NULL", slug).Count(&count).Error
 	if err != nil {
 		return false, fmt.Errorf("failed to check if slug exists: %w", err)
 	}
@@ -102,6 +103,18 @@ func (r *repository) UpdateIconKeyByID(ctx context.Context, id int64, iconKey st
 	}
 	if result.RowsAffected == 0 {
 		return errConstant.ErrNotFound
+	}
+	return nil
+}
+
+func (r *repository) Delete(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).
+		Where(`NOT EXISTS (SELECT 1 FROM categories WHERE parent_id = ? AND deleted_at IS NULL)`, id).Where("id = ?", id).Delete(&model.Category{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete category: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrCategoryHasChildren
 	}
 	return nil
 }
