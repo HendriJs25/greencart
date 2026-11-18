@@ -3,8 +3,8 @@ package enum
 type CategoryStatus string
 
 const (
-	CategoryStatusPublished   CategoryStatus = "published"
-	CategoryStatusUnpublished CategoryStatus = "unpublished"
+	CategoryStatusPublished   CategoryStatus = "有効"
+	CategoryStatusUnpublished CategoryStatus = "無効"
 )
 
 func (c CategoryStatus) Bool() bool {

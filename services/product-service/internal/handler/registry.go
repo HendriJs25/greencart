@@ -4,6 +4,8 @@ import (
 	categoryhandler "product-service/internal/handler/category"
 	healthhandler "product-service/internal/handler/health"
 	"product-service/internal/services"
+
+	customValidator "github.com/go-playground/validator/v10"
 )
 
 type Registry struct {
@@ -11,9 +13,9 @@ type Registry struct {
 	CategoryHandler *categoryhandler.Handler
 }
 
-func NewRegistry(services *services.Registry) *Registry {
+func NewRegistry(services *services.Registry, validate *customValidator.Validate) *Registry {
 	return &Registry{
 		HealthHandler:   healthhandler.NewHandler(),
-		CategoryHandler: categoryhandler.NewHandler(services.CategoryService),
+		CategoryHandler: categoryhandler.NewHandler(services.CategoryService, validate),
 	}
 }

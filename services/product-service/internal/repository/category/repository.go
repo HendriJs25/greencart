@@ -2,7 +2,9 @@ package category
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	errConstant "product-service/internal/constants/error"
 	"product-service/internal/domain/model"
 
 	"gorm.io/gorm"
@@ -14,6 +16,9 @@ type repository struct {
 
 type Repository interface {
 	FindAll(ctx context.Context) ([]model.Category, error)
+	FindBySlug(ctx context.Context, slug *string) (*model.Category, error)
+	IsSlugExist(ctx context.Context, slug string) (bool, error)
+	Create(ctx context.Context, category *model.Category) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -32,4 +37,36 @@ func (r *repository) FindAll(ctx context.Context) ([]model.Category, error) {
 		return nil, fmt.Errorf("failed to find all categories: %w", err)
 	}
 	return categories, nil
+}
+
+func (r *repository) FindBySlug(ctx context.Context, slug *string) (*model.Category, error) {
+	var category model.Category
+	err := r.db.WithContext(ctx).Where("categories.slug = ?", slug).Take(&category).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errConstant.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to find category by slug: %w", err)
+	}
+	return &category, nil
+}
+
+func (r *repository) IsSlugExist(ctx context.Context, slug string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.Category{}).Where("slug = ?", slug).Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check if slug exists: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *repository) Create(ctx context.Context, category *model.Category) error {
+	err := r.db.WithContext(ctx).Create(&category).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errConstant.ErrCategoryAlreadyExists
+		}
+		return fmt.Errorf("failed to create category: %w", err)
+	}
+	return nil
 }

@@ -1,22 +1,28 @@
 package category
 
 import (
+	"errors"
 	"net/http"
 	"product-service/internal/common/response"
+	errConstant "product-service/internal/constants/error"
+	"product-service/internal/domain/dto/request"
 	responsedto "product-service/internal/domain/dto/response"
 	"product-service/internal/logger"
 	categoryservice "product-service/internal/services/category"
 
 	"github.com/gin-gonic/gin"
+	customvalidator "github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
 	categoryService categoryservice.Service
+	validate        *customvalidator.Validate
 }
 
-func NewHandler(categoryService categoryservice.Service) *Handler {
+func NewHandler(categoryService categoryservice.Service, validate *customvalidator.Validate) *Handler {
 	return &Handler{
 		categoryService: categoryService,
+		validate:        validate,
 	}
 }
 
@@ -32,6 +38,39 @@ func (h *Handler) GetAll(c *gin.Context) {
 	response.HTTPResponse(response.ParamHTTPResponse{
 		Code: http.StatusOK,
 		Data: result,
+		Gin:  c,
+	})
+}
+
+func (h *Handler) Create(c *gin.Context) {
+	var req request.CreateCategoryRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c)
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	err := h.categoryService.Create(c.Request.Context(), request.ToCreateCategoryInput(req))
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrCategoryAlreadyExists):
+			response.Conflict(c, err)
+			return
+		case errors.Is(err, errConstant.ErrNotFound):
+			response.UnprocessableEntity(c, errConstant.ErrParentCategoryMissing)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).Error("failed to create category")
+			response.InternalServerError(c)
+			return
+		}
+	}
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
 		Gin:  c,
 	})
 }

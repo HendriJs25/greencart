@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"product-service/internal/bootstrap"
 	"product-service/internal/common/response"
+	"product-service/internal/common/validator"
 	"product-service/internal/constants"
 	"product-service/internal/database"
 	"product-service/internal/handler"
@@ -68,10 +69,10 @@ func runServer() error {
 		"db":   redisDB.Client.Options().DB,
 	}).Info("redis connection established")
 
-	// v, err := validator.New()
-	// if err != nil {
-	//	return fmt.Errorf("failed to initialize validator: %w", err)
-	// }
+	v, err := validator.New()
+	if err != nil {
+		return fmt.Errorf("failed to initialize validator: %w", err)
+	}
 
 	producer := kafka.NewProducer(cfg.Kafka)
 
@@ -93,7 +94,7 @@ func runServer() error {
 	repositoryRegistry := repository.NewRegistry(postgresDB.DB)
 	sessionRepository := sessionrepository.NewRepository(redisDB.Client)
 	serviceRegistry := services.NewRegistry(repositoryRegistry, cfg)
-	handlerRegistry := handler.NewRegistry(serviceRegistry)
+	handlerRegistry := handler.NewRegistry(serviceRegistry, v)
 	authenticationMiddleware := middleware.NewAuthentication(serviceRegistry.JWTService, sessionRepository)
 
 	bootstrap.SetupAppMode(cfg.App)
@@ -133,7 +134,7 @@ func runServer() error {
 		logger.Log.WithFields(logrus.Fields{
 			"environment": cfg.App.Env,
 			"address":     cfg.ServerAddress(),
-		}).Info("starting user service")
+		}).Info("starting product service")
 
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErr <- err
