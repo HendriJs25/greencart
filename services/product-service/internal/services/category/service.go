@@ -3,6 +3,7 @@ package category
 import (
 	"context"
 	errConstant "product-service/internal/constants/error"
+	"product-service/internal/domain/enum"
 	"product-service/internal/domain/model"
 	categoryrepository "product-service/internal/repository/category"
 )
@@ -13,6 +14,7 @@ type service struct {
 
 type Service interface {
 	GetAll(ctx context.Context) ([]GetAllCategoriesResult, error)
+	GetByID(ctx context.Context, id int64) (*GetDetailCategoryResult, error)
 	Create(ctx context.Context, input CreateCategoryInput) error
 }
 
@@ -28,6 +30,30 @@ func (s *service) GetAll(ctx context.Context) ([]GetAllCategoriesResult, error) 
 		return nil, err
 	}
 	result := ToGetAllCategoriesResult(categories)
+	return result, nil
+}
+
+func (s *service) GetByID(ctx context.Context, id int64) (*GetDetailCategoryResult, error) {
+	category, err := s.categoryRepository.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var parentSlug *string
+	if category.Parent != nil {
+		parentSlug = &category.Parent.Slug
+	}
+
+	result := &GetDetailCategoryResult{
+		ID:          category.ID,
+		ParentSlug:  parentSlug,
+		Name:        category.Name,
+		Icon:        category.Icon,
+		Status:      enum.CategoryStatusFromBool(category.Status),
+		Slug:        category.Slug,
+		Description: category.Description,
+	}
+
 	return result, nil
 }
 

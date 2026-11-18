@@ -9,6 +9,7 @@ import (
 	responsedto "product-service/internal/domain/dto/response"
 	"product-service/internal/logger"
 	categoryservice "product-service/internal/services/category"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	customvalidator "github.com/go-playground/validator/v10"
@@ -35,6 +36,35 @@ func (h *Handler) GetAll(c *gin.Context) {
 	}
 
 	result := responsedto.ToGetAllCategoriesResponse(categories)
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: result,
+		Gin:  c,
+	})
+}
+
+func (h *Handler) GetDetail(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	category, err := h.categoryService.GetByID(c.Request.Context(), id)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrNotFound):
+			response.NotFound(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithField("category_id", id).WithError(err).Error("failed to get category detail")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	result := responsedto.ToGetDetailCategoryResponse(category)
 	response.HTTPResponse(response.ParamHTTPResponse{
 		Code: http.StatusOK,
 		Data: result,

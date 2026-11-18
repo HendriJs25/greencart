@@ -9,5 +9,6 @@ import (
 
 func Register(router *gin.RouterGroup, categoryHandler *categoryhandler.Handler) {
 	router.GET("/categories", categoryHandler.GetAll)
+	router.GET("/categories/:id", categoryHandler.GetDetail)
 	router.POST("/categories", middleware.CSRFProtection(), categoryHandler.Create)
 }

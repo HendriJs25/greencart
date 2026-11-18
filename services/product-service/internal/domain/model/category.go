@@ -19,6 +19,8 @@ type Category struct {
 	UpdatedAt    *time.Time
 	DeletedAt    *gorm.DeletedAt
 	Products     []Product `gorm:"foreignkey:CategorySlug;references:Slug;"`
+
+	Parent *Category `gorm:"foreignkey:ParentID;references:ID"`
 }
 
 func (c *Category) TableName() string {
