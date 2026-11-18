@@ -40,16 +40,17 @@ func (s *service) Create(ctx context.Context, input CreateCategoryInput) error {
 		return errConstant.ErrCategoryAlreadyExists
 	}
 
-	var parentCategory *model.Category
+	var parentCategoryID *int64
 	if input.ParentSlug != nil {
-		parentCategory, err = s.categoryRepository.FindBySlug(ctx, input.ParentSlug)
+		parentCategory, err := s.categoryRepository.FindBySlug(ctx, input.ParentSlug)
 		if err != nil {
 			return err
 		}
+		parentCategoryID = &parentCategory.ID
 	}
 
-	input := model.Category{
-		ParentID: parentCategory.ID,
+	inputModel := &model.Category{
+		ParentID:    parentCategoryID,
 		Name:        input.Name,
 		Icon:        input.Icon,
 		Status:      input.Status.Bool(),
@@ -57,7 +58,7 @@ func (s *service) Create(ctx context.Context, input CreateCategoryInput) error {
 		Description: input.Description,
 	}
 
-	err = s.categoryRepository.Create(ctx, ToCreateCategoryModel(input))
+	err = s.categoryRepository.Create(ctx, inputModel)
 	if err != nil {
 		return err
 	}

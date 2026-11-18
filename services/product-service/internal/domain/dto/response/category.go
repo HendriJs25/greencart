@@ -15,7 +15,7 @@ type GetAllCategoriesResponse struct {
 }
 
 func ToGetAllCategoriesResponse(categories []category.GetAllCategoriesResult) []GetAllCategoriesResponse {
-	result := make([]GetAllCategoriesResponse, len(categories))
+	result := make([]GetAllCategoriesResponse, 0, len(categories))
 	for _, c := range categories {
 		result = append(result, GetAllCategoriesResponse{
 			ID:           c.ID,

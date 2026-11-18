@@ -24,6 +24,10 @@ func MessageJa(err error) string {
 		return "対応していないファイル形式です"
 	case errors.Is(err, errConstant.ErrForbidden):
 		return "この操作を実行する権限がありません"
+	case errors.Is(err, errConstant.ErrCategoryAlreadyExists):
+		return "このカテゴリーが既に登録されています"
+	case errors.Is(err, errConstant.ErrParentCategoryMissing):
+		return "親カテゴリーが見つかりません"
 	default:
 		return "サーバー内部でエラーが発生しました"
 	}
