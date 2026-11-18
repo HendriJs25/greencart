@@ -14,6 +14,16 @@ type GetAllCategoriesResponse struct {
 	Status       enum.CategoryStatus `json:"status"`
 }
 
+type GetDetailCategoryResponse struct {
+	ID          int64               `json:"id"`
+	ParentSlug  *string             `json:"parent_slug"`
+	Name        string              `json:"name"`
+	Icon        string              `json:"icon"`
+	Status      enum.CategoryStatus `json:"status"`
+	Slug        string              `json:"slug"`
+	Description *string             `json:"description"`
+}
+
 func ToGetAllCategoriesResponse(categories []category.GetAllCategoriesResult) []GetAllCategoriesResponse {
 	result := make([]GetAllCategoriesResponse, 0, len(categories))
 	for _, c := range categories {
@@ -27,4 +37,16 @@ func ToGetAllCategoriesResponse(categories []category.GetAllCategoriesResult) []
 		})
 	}
 	return result
+}
+
+func ToGetDetailCategoryResponse(result *category.GetDetailCategoryResult) GetDetailCategoryResponse {
+	return GetDetailCategoryResponse{
+		ID:          result.ID,
+		ParentSlug:  result.ParentSlug,
+		Name:        result.Name,
+		Icon:        result.Icon,
+		Status:      result.Status,
+		Slug:        result.Slug,
+		Description: result.Description,
+	}
 }

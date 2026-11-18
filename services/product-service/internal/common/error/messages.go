@@ -28,6 +28,8 @@ func MessageJa(err error) string {
 		return "このカテゴリーが既に登録されています"
 	case errors.Is(err, errConstant.ErrParentCategoryMissing):
 		return "親カテゴリーが見つかりません"
+	case errors.Is(err, errConstant.ErrNotFound):
+		return "該当するデータが見つかりません"
 	default:
 		return "サーバー内部でエラーが発生しました"
 	}

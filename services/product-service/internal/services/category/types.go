@@ -14,6 +14,16 @@ type GetAllCategoriesResult struct {
 	Status       enum.CategoryStatus
 }
 
+type GetDetailCategoryResult struct {
+	ID          int64
+	ParentSlug  *string
+	Name        string
+	Icon        string
+	Status      enum.CategoryStatus
+	Slug        string
+	Description *string
+}
+
 type CreateCategoryInput struct {
 	ParentSlug  *string
 	Name        string

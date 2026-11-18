@@ -17,6 +17,7 @@ type repository struct {
 type Repository interface {
 	FindAll(ctx context.Context) ([]model.Category, error)
 	FindBySlug(ctx context.Context, slug *string) (*model.Category, error)
+	FindByID(ctx context.Context, id int64) (*model.Category, error)
 	IsSlugExist(ctx context.Context, slug string) (bool, error)
 	Create(ctx context.Context, category *model.Category) error
 }
@@ -47,6 +48,18 @@ func (r *repository) FindBySlug(ctx context.Context, slug *string) (*model.Categ
 			return nil, errConstant.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to find category by slug: %w", err)
+	}
+	return &category, nil
+}
+
+func (r *repository) FindByID(ctx context.Context, id int64) (*model.Category, error) {
+	var category model.Category
+	err := r.db.WithContext(ctx).Preload("Parent").Where("id = ?", id).Take(&category).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errConstant.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to find category by id: %w", err)
 	}
 	return &category, nil
 }
