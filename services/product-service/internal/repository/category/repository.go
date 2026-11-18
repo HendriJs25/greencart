@@ -16,6 +16,7 @@ type repository struct {
 
 type Repository interface {
 	FindAll(ctx context.Context) ([]model.Category, error)
+	FindAllSlugForOptions(ctx context.Context) ([]string, error)
 	FindBySlug(ctx context.Context, slug *string) (*model.Category, error)
 	FindByID(ctx context.Context, id int64) (*model.Category, error)
 	IsSlugExist(ctx context.Context, slug string) (bool, error)
@@ -38,6 +39,15 @@ func (r *repository) FindAll(ctx context.Context) ([]model.Category, error) {
 		return nil, fmt.Errorf("failed to find all categories: %w", err)
 	}
 	return categories, nil
+}
+
+func (r *repository) FindAllSlugForOptions(ctx context.Context) ([]string, error) {
+	var slugs []string
+	err := r.db.WithContext(ctx).Model(&model.Category{}).Pluck("slug", &slugs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to find all slug: %w", err)
+	}
+	return slugs, nil
 }
 
 func (r *repository) FindBySlug(ctx context.Context, slug *string) (*model.Category, error) {
