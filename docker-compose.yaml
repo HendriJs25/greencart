@@ -244,7 +244,10 @@ services:
               "Effect": "Allow",
               "Principal": "*",
               "Action": "s3:GetObject",
-              "Resource": "arn:aws:s3:::$$S3_BUCKET/users/*/profile/*"
+              "Resource": [
+                "arn:aws:s3:::$$S3_BUCKET/users/*/profile/*",
+                "arn:aws:s3:::$$S3_BUCKET/categories/*"
+              ]
             }
           ]
         }

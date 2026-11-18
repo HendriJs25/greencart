@@ -118,3 +118,48 @@ func (h *Handler) Create(c *gin.Context) {
 		Gin:  c,
 	})
 }
+
+func (h *Handler) UploadIconImage(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	const maxRequestSize = 3 << 20
+
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxRequestSize)
+
+	file, err := c.FormFile("icon")
+	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			response.UnprocessableEntity(c, errConstant.ErrFileTooBig)
+			return
+		}
+		response.BadRequest(c)
+		return
+	}
+
+	key, err := h.categoryService.UploadIconImage(c.Request.Context(), id, file)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrFileTooBig), errors.Is(err, errConstant.ErrUnsupportedFileExtension):
+			response.UnprocessableEntity(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).WithField("category_id", id).Error("upload icon image failed")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: responsedto.UploadImageIconResponse{
+			IconURL: key,
+		},
+		Gin: c,
+	})
+}

@@ -8,7 +8,7 @@ import (
 type GetAllCategoriesResult struct {
 	ID           int64
 	Name         string
-	Icon         string
+	Icon         *string
 	Slug         string
 	TotalProduct int64
 	Status       enum.CategoryStatus
@@ -18,7 +18,7 @@ type GetDetailCategoryResult struct {
 	ID          int64
 	ParentSlug  *string
 	Name        string
-	Icon        string
+	Icon        *string
 	Status      enum.CategoryStatus
 	Slug        string
 	Description *string
@@ -27,19 +27,18 @@ type GetDetailCategoryResult struct {
 type CreateCategoryInput struct {
 	ParentSlug  *string
 	Name        string
-	Icon        string
 	Status      enum.CategoryStatus
 	Slug        string
 	Description *string
 }
 
-func ToGetAllCategoriesResult(categories []model.Category) []GetAllCategoriesResult {
+func ToGetAllCategoriesResult(categories []model.Category, iconUrl *string) []GetAllCategoriesResult {
 	result := make([]GetAllCategoriesResult, 0, len(categories))
 	for _, category := range categories {
 		result = append(result, GetAllCategoriesResult{
 			ID:           category.ID,
 			Name:         category.Name,
-			Icon:         category.Icon,
+			Icon:         iconUrl,
 			Slug:         category.Slug,
 			TotalProduct: category.TotalProduct,
 			Status:       enum.CategoryStatusFromBool(category.Status),

@@ -8,7 +8,7 @@ import (
 type GetAllCategoriesResponse struct {
 	ID           int64               `json:"id"`
 	Name         string              `json:"name"`
-	Icon         string              `json:"icon"`
+	Icon         *string             `json:"icon"`
 	Slug         string              `json:"slug"`
 	TotalProduct int64               `json:"total_product"`
 	Status       enum.CategoryStatus `json:"status"`
@@ -18,10 +18,14 @@ type GetDetailCategoryResponse struct {
 	ID          int64               `json:"id"`
 	ParentSlug  *string             `json:"parent_slug"`
 	Name        string              `json:"name"`
-	Icon        string              `json:"icon"`
+	Icon        *string             `json:"icon"`
 	Status      enum.CategoryStatus `json:"status"`
 	Slug        string              `json:"slug"`
 	Description *string             `json:"description"`
+}
+
+type UploadImageIconResponse struct {
+	IconURL *string `json:"icon_url"`
 }
 
 func ToGetAllCategoriesResponse(categories []category.GetAllCategoriesResult) []GetAllCategoriesResponse {

@@ -21,6 +21,7 @@ type Repository interface {
 	FindByID(ctx context.Context, id int64) (*model.Category, error)
 	IsSlugExist(ctx context.Context, slug string) (bool, error)
 	Create(ctx context.Context, category *model.Category) error
+	UpdateIconKeyByID(ctx context.Context, id int64, iconKey string) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -90,6 +91,17 @@ func (r *repository) Create(ctx context.Context, category *model.Category) error
 			return errConstant.ErrCategoryAlreadyExists
 		}
 		return fmt.Errorf("failed to create category: %w", err)
+	}
+	return nil
+}
+
+func (r *repository) UpdateIconKeyByID(ctx context.Context, id int64, iconKey string) error {
+	result := r.db.WithContext(ctx).Model(&model.Category{}).Where("id = ?", id).Update("icon", iconKey)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update icon key: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrNotFound
 	}
 	return nil
 }
