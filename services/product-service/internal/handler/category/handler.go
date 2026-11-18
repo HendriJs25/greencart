@@ -72,6 +72,20 @@ func (h *Handler) GetDetail(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GetAllSlugForOptions(c *gin.Context) {
+	slugs, err := h.categoryService.GetAllSlugForOptions(c.Request.Context())
+	if err != nil {
+		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to get categories slugs")
+		response.InternalServerError(c)
+		return
+	}
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: slugs,
+		Gin:  c,
+	})
+}
+
 func (h *Handler) Create(c *gin.Context) {
 	var req request.CreateCategoryRequest
 

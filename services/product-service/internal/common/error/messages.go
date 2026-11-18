@@ -6,8 +6,9 @@ import (
 )
 
 var ErrValidator = map[string]string{
-	"required": "%sは必須です",
-	"notblank": "%sは空白のみでは登録できません",
+	"required":         "%sは必須です",
+	"notblank":         "%sは空白のみでは登録できません",
+	"lowercase_hyphen": "%sは半角小文字とハイフン（-）のみ使用できます",
 }
 
 func MessageJa(err error) string {

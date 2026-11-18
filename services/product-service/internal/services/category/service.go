@@ -15,6 +15,7 @@ type service struct {
 type Service interface {
 	GetAll(ctx context.Context) ([]GetAllCategoriesResult, error)
 	GetByID(ctx context.Context, id int64) (*GetDetailCategoryResult, error)
+	GetAllSlugForOptions(ctx context.Context) ([]string, error)
 	Create(ctx context.Context, input CreateCategoryInput) error
 }
 
@@ -55,6 +56,10 @@ func (s *service) GetByID(ctx context.Context, id int64) (*GetDetailCategoryResu
 	}
 
 	return result, nil
+}
+
+func (s *service) GetAllSlugForOptions(ctx context.Context) ([]string, error) {
+	return s.categoryRepository.FindAllSlugForOptions(ctx)
 }
 
 func (s *service) Create(ctx context.Context, input CreateCategoryInput) error {
