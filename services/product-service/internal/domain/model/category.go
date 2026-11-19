@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Category struct {
@@ -17,7 +15,6 @@ type Category struct {
 	TotalProduct int64 `gorm:"->;-:migration"`
 	CreatedAt    time.Time
 	UpdatedAt    *time.Time
-	DeletedAt    *gorm.DeletedAt
 	Products     []Product `gorm:"foreignkey:CategorySlug;references:Slug;"`
 
 	Parent *Category `gorm:"foreignkey:ParentID;references:ID"`
