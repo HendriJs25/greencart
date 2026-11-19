@@ -29,6 +29,7 @@ type Service interface {
 	GetByID(ctx context.Context, id int64) (*GetDetailCategoryResult, error)
 	GetAllSlugForOptions(ctx context.Context) ([]string, error)
 	Create(ctx context.Context, input CreateCategoryInput) error
+	Update(ctx context.Context, id int64, update UpdateCategoryInput) error
 	UploadIconImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error)
 	Delete(ctx context.Context, id int64) error
 }
@@ -126,6 +127,31 @@ func (s *service) Create(ctx context.Context, input CreateCategoryInput) error {
 	}
 
 	err = s.categoryRepository.Create(ctx, inputModel)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *service) Update(ctx context.Context, id int64, update UpdateCategoryInput) error {
+	var parentCategoryID *int64
+	if update.ParentSlug != nil {
+		parentCategory, err := s.categoryRepository.FindBySlug(ctx, update.ParentSlug)
+		if err != nil {
+			return errConstant.ErrParentCategoryMissing
+		}
+		parentCategoryID = &parentCategory.ID
+	}
+
+	updates := map[string]any{
+		"parent_id":   parentCategoryID,
+		"name":        update.Name,
+		"status":      update.Status.Bool(),
+		"slug":        update.Slug,
+		"description": update.Description,
+	}
+
+	err := s.categoryRepository.Update(ctx, id, updates)
 	if err != nil {
 		return err
 	}

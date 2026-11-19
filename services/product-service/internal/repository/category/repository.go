@@ -21,6 +21,7 @@ type Repository interface {
 	FindByID(ctx context.Context, id int64) (*model.Category, error)
 	IsSlugExist(ctx context.Context, slug string) (bool, error)
 	Create(ctx context.Context, category *model.Category) error
+	Update(ctx context.Context, id int64, updates map[string]any) error
 	UpdateIconKeyByID(ctx context.Context, id int64, iconKey string) error
 	Delete(ctx context.Context, id int64) error
 }
@@ -92,6 +93,20 @@ func (r *repository) Create(ctx context.Context, category *model.Category) error
 			return errConstant.ErrCategoryAlreadyExists
 		}
 		return fmt.Errorf("failed to create category: %w", err)
+	}
+	return nil
+}
+
+func (r *repository) Update(ctx context.Context, id int64, updates map[string]any) error {
+	result := r.db.WithContext(ctx).Model(&model.Category{}).Where("id = ?", id).Updates(updates)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return errConstant.ErrCategoryAlreadyExists
+		}
+		return fmt.Errorf("failed to update category: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrNotFound
 	}
 	return nil
 }
