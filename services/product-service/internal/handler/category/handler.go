@@ -28,7 +28,14 @@ func NewHandler(categoryService categoryservice.Service, validate *customvalidat
 }
 
 func (h *Handler) GetAll(c *gin.Context) {
-	categories, err := h.categoryService.GetAll(c.Request.Context())
+	var query request.GetAllCategoriesQuery
+
+	if err := c.ShouldBindQuery(&query); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	categories, metadata, err := h.categoryService.GetAll(c.Request.Context(), request.ToGetAllCategoriesQueryInput(query))
 	if err != nil {
 		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to get categories")
 		response.InternalServerError(c)
@@ -39,6 +46,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 	response.HTTPResponse(response.ParamHTTPResponse{
 		Code: http.StatusOK,
 		Data: result,
+		Meta: metadata,
 		Gin:  c,
 	})
 }
