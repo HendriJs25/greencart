@@ -6,16 +6,24 @@ import (
 	"fmt"
 	errConstant "product-service/internal/constants/error"
 	"product-service/internal/domain/model"
+	queryinput "product-service/internal/domain/query"
+	"product-service/internal/query"
 
 	"gorm.io/gorm"
 )
+
+var categorySortColumns = map[string]string{
+	"id":         "id",
+	"created_at": "created_at",
+	"name":       "name",
+}
 
 type repository struct {
 	db *gorm.DB
 }
 
 type Repository interface {
-	FindAll(ctx context.Context) ([]model.Category, error)
+	FindAll(ctx context.Context, params queryinput.GetAllCategoriesQueryInput) ([]model.Category, int64, error)
 	FindAllSlugForOptions(ctx context.Context) ([]string, error)
 	FindBySlug(ctx context.Context, slug *string) (*model.Category, error)
 	FindByID(ctx context.Context, id int64) (*model.Category, error)
@@ -32,16 +40,24 @@ func NewRepository(db *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) FindAll(ctx context.Context) ([]model.Category, error) {
+func (r *repository) FindAll(ctx context.Context, params queryinput.GetAllCategoriesQueryInput) ([]model.Category, int64, error) {
 	var categories []model.Category
+	var count int64
 
 	subQuery := r.db.Model(&model.Product{}).Select("COUNT(*)").Where("products.category_slug = categories.slug")
+	q := r.db.WithContext(ctx).Model(&model.Category{}).Select("categories.*, (?) AS total_product", subQuery)
 
-	err := r.db.WithContext(ctx).Model(&model.Category{}).Select("categories.*, (?) AS total_product", subQuery).Find(&categories).Error
+	err := q.Session(&gorm.Session{}).Count(&count).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to find all categories: %w", err)
+		return nil, 0, fmt.Errorf("failed to count all categories: %w", err)
 	}
-	return categories, nil
+
+	err = q.Session(&gorm.Session{}).Scopes(query.Sort(params.SortBy, params.SortOrder, categorySortColumns), query.Paginate(params.Page, params.Size)).Find(&categories).Error
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to find all categories: %w", err)
+	}
+	return categories, count, nil
 }
 
 func (r *repository) FindAllSlugForOptions(ctx context.Context) ([]string, error) {

@@ -11,7 +11,9 @@ import (
 	errConstant "product-service/internal/constants/error"
 	"product-service/internal/domain/enum"
 	"product-service/internal/domain/model"
+	queryinput "product-service/internal/domain/query"
 	"product-service/internal/logger"
+	"product-service/internal/query"
 	categoryrepository "product-service/internal/repository/category"
 	"product-service/internal/storage"
 	"strings"
@@ -25,7 +27,7 @@ type service struct {
 }
 
 type Service interface {
-	GetAll(ctx context.Context) ([]GetAllCategoriesResult, error)
+	GetAll(ctx context.Context, params queryinput.GetAllCategoriesQueryInput) ([]GetAllCategoriesResult, *query.Meta, error)
 	GetByID(ctx context.Context, id int64) (*GetDetailCategoryResult, error)
 	GetAllSlugForOptions(ctx context.Context) ([]string, error)
 	Create(ctx context.Context, input CreateCategoryInput) error
@@ -41,10 +43,10 @@ func NewService(categoryRepository categoryrepository.Repository, s3Storage stor
 	}
 }
 
-func (s *service) GetAll(ctx context.Context) ([]GetAllCategoriesResult, error) {
-	categories, err := s.categoryRepository.FindAll(ctx)
+func (s *service) GetAll(ctx context.Context, params queryinput.GetAllCategoriesQueryInput) ([]GetAllCategoriesResult, *query.Meta, error) {
+	categories, total, err := s.categoryRepository.FindAll(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	result := make([]GetAllCategoriesResult, 0, len(categories))
@@ -64,7 +66,9 @@ func (s *service) GetAll(ctx context.Context) ([]GetAllCategoriesResult, error) 
 			Status:       enum.CategoryStatusFromBool(category.Status),
 		})
 	}
-	return result, nil
+
+	metadata := query.Metadata(params.Page, params.Size, total)
+	return result, metadata, nil
 }
 
 func (s *service) GetByID(ctx context.Context, id int64) (*GetDetailCategoryResult, error) {

@@ -2,9 +2,14 @@ package request
 
 import (
 	"product-service/internal/domain/enum"
+	queryinput "product-service/internal/domain/query"
 	"product-service/internal/services/category"
 )
 
+type GetAllCategoriesQuery struct {
+	PaginationQuery
+	SortingQuery
+}
 type CreateCategoryRequest struct {
 	ParentSlug  *string             `json:"parent_slug"`
 	Name        string              `json:"name" validate:"required,notblank"`
@@ -19,6 +24,15 @@ type UpdateCategoryRequest struct {
 	Status      enum.CategoryStatus `json:"status" validate:"required,oneof=有効 無効"`
 	Slug        string              `json:"slug" validate:"required,lowercase_hyphen"`
 	Description *string             `json:"description"`
+}
+
+func ToGetAllCategoriesQueryInput(params GetAllCategoriesQuery) queryinput.GetAllCategoriesQueryInput {
+	return queryinput.GetAllCategoriesQueryInput{
+		Page:      params.Page,
+		Size:      params.Size,
+		SortBy:    params.SortBy,
+		SortOrder: params.SortOrder,
+	}
 }
 
 func ToCreateCategoryInput(req CreateCategoryRequest) category.CreateCategoryInput {
