@@ -13,8 +13,26 @@ type CreateCategoryRequest struct {
 	Description *string             `json:"description"`
 }
 
+type UpdateCategoryRequest struct {
+	ParentSlug  *string             `json:"parent_slug"`
+	Name        string              `json:"name" validate:"required,notblank"`
+	Status      enum.CategoryStatus `json:"status" validate:"required,oneof=有効 無効"`
+	Slug        string              `json:"slug" validate:"required,lowercase_hyphen"`
+	Description *string             `json:"description"`
+}
+
 func ToCreateCategoryInput(req CreateCategoryRequest) category.CreateCategoryInput {
 	return category.CreateCategoryInput{
+		ParentSlug:  req.ParentSlug,
+		Name:        req.Name,
+		Status:      req.Status,
+		Slug:        req.Slug,
+		Description: req.Description,
+	}
+}
+
+func ToUpdateCategoryInput(req UpdateCategoryRequest) category.UpdateCategoryInput {
+	return category.UpdateCategoryInput{
 		ParentSlug:  req.ParentSlug,
 		Name:        req.Name,
 		Status:      req.Status,

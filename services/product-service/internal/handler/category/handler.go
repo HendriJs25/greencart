@@ -119,6 +119,47 @@ func (h *Handler) Create(c *gin.Context) {
 	})
 }
 
+func (h *Handler) Update(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	var req request.UpdateCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	err = h.categoryService.Update(c.Request.Context(), id, request.ToUpdateCategoryInput(req))
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrCategoryAlreadyExists):
+			response.Conflict(c, err)
+			return
+		case errors.Is(err, errConstant.ErrParentCategoryMissing):
+			response.UnprocessableEntity(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithField("category_id", id).WithError(err).Error("failed to update category")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Gin:  c,
+	})
+}
+
 func (h *Handler) UploadIconImage(c *gin.Context) {
 	strID := c.Param("id")
 	id, err := strconv.ParseInt(strID, 10, 64)
