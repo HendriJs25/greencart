@@ -9,5 +9,6 @@ import (
 
 func Register(router *gin.RouterGroup, productHandler *producthandler.Handler) {
 	router.GET("/products", productHandler.GetAll)
+	router.GET("/products/:id", productHandler.GetParent)
 	router.POST("/products", middleware.CSRFProtection(), productHandler.Create)
 }
