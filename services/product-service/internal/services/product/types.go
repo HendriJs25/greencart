@@ -18,3 +18,11 @@ type DetailProductInput struct {
 	SalePrice    int64
 	RegularPrice int64
 }
+
+type GetAllProductsResult struct {
+	ImageUrl           *string
+	ProductName        string
+	CategoryName       string
+	ProductDescription *string
+	Status             enum.ProductStatus
+}

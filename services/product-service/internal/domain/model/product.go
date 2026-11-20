@@ -25,6 +25,7 @@ type Product struct {
 	DeletedAt    gorm.DeletedAt
 
 	VariantDetail []Product `gorm:"foreignkey:ParentID;references:ID"`
+	Category      Category  `gorm:"foreignkey:CategorySlug;references:Slug"`
 }
 
 func (p *Product) TableName() string {
