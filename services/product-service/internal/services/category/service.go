@@ -2,12 +2,10 @@ package category
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"mime/multipart"
-	"net/http"
 	"path/filepath"
+	"product-service/internal/common/helper"
 	errConstant "product-service/internal/constants/error"
 	"product-service/internal/domain/enum"
 	"product-service/internal/domain/model"
@@ -152,7 +150,7 @@ func (s *service) Update(ctx context.Context, id int64, update UpdateCategoryInp
 }
 
 func (s *service) UploadIconImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error) {
-	contentType, err := validateProfileImage(file)
+	contentType, err := helper.ValidateImage(file)
 	if err != nil {
 		return nil, err
 	}
@@ -187,47 +185,6 @@ func (s *service) UploadIconImage(ctx context.Context, id int64, file *multipart
 	}
 
 	return s.s3Storage.GetFileURL(&uploadedKey), nil
-}
-
-func validateProfileImage(file *multipart.FileHeader) (string, error) {
-	const maxSize = 2 << 20 // 2 MiB
-
-	if file.Size > maxSize {
-		return "", errConstant.ErrFileTooBig
-	}
-
-	allowedTypes := map[string]string{
-		".jpg":  "image/jpeg",
-		".jpeg": "image/jpeg",
-		".png":  "image/png",
-	}
-
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	expectedType, ok := allowedTypes[ext]
-	if !ok {
-		return "", errConstant.ErrUnsupportedFileExtension
-	}
-
-	src, err := file.Open()
-	if err != nil {
-		return "", fmt.Errorf("failed to open uploaded file: %w", err)
-	}
-	defer src.Close()
-
-	header := make([]byte, 512)
-
-	n, err := io.ReadFull(src, header)
-	if err != nil && errors.Is(err, io.ErrUnexpectedEOF) {
-		return "", fmt.Errorf("failed to read file: %w", err)
-	}
-
-	contentType := http.DetectContentType(header[:n])
-
-	if contentType != expectedType {
-		return "", errConstant.ErrUnsupportedFileExtension
-	}
-
-	return contentType, nil
 }
 
 func (s *service) Delete(ctx context.Context, id int64) error {
