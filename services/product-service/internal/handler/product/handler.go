@@ -6,6 +6,7 @@ import (
 	"product-service/internal/common/response"
 	errConstant "product-service/internal/constants/error"
 	"product-service/internal/domain/dto/request"
+	responsedto "product-service/internal/domain/dto/response"
 	"product-service/internal/logger"
 	productservice "product-service/internal/services/product"
 
@@ -14,14 +15,14 @@ import (
 )
 
 type Handler struct {
-	ProductService productservice.Service
-	Validate       *customValidator.Validate
+	productService productservice.Service
+	validate       *customValidator.Validate
 }
 
 func NewHandler(productService productservice.Service, validate *customValidator.Validate) *Handler {
 	return &Handler{
-		ProductService: productService,
-		Validate:       validate,
+		productService: productService,
+		validate:       validate,
 	}
 }
 
@@ -33,12 +34,12 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	if err := h.Validate.Struct(req); err != nil {
+	if err := h.validate.Struct(req); err != nil {
 		response.ValidationError(c, err)
 		return
 	}
 
-	err := h.ProductService.Create(c.Request.Context(), request.ToCreateProductInput(req))
+	err := h.productService.Create(c.Request.Context(), request.ToCreateProductInput(req))
 	if err != nil {
 		switch {
 		case errors.Is(err, errConstant.ErrCategoryNotFound):
@@ -53,6 +54,20 @@ func (h *Handler) Create(c *gin.Context) {
 
 	response.HTTPResponse(response.ParamHTTPResponse{
 		Code: http.StatusCreated,
+		Gin:  c,
+	})
+}
+
+func (h *Handler) GetAll(c *gin.Context) {
+	products, err := h.productService.GetAll(c.Request.Context())
+	if err != nil {
+		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to get all products")
+		response.InternalServerError(c)
+		return
+	}
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: responsedto.ToGetAllProductsResponse(products),
 		Gin:  c,
 	})
 }

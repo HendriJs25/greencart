@@ -20,6 +20,6 @@ func NewRegistry(repositories *repository.Registry, s3Storage storage.Storage, c
 	return &Registry{
 		JWTService:      jwtService,
 		CategoryService: categoryservice.NewService(repositories.CategoryRepository, s3Storage),
-		ProductService:  productservice.NewService(repositories.ProductRepository, repositories.CategoryRepository),
+		ProductService:  productservice.NewService(repositories.ProductRepository, repositories.CategoryRepository, s3Storage),
 	}
 }

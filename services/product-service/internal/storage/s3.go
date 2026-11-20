@@ -93,7 +93,10 @@ func (s *s3Storage) DeleteFile(ctx context.Context, path string) error {
 	return nil
 }
 
-func (s *s3Storage) GetFileURL(key string) *string {
-	URL := fmt.Sprintf("%s/%s", s.publicBaseURL, key)
-	return &URL
+func (s *s3Storage) GetFileURL(key *string) *string {
+	if key != nil {
+		URL := fmt.Sprintf("%s/%s", s.publicBaseURL, *key)
+		return &URL
+	}
+	return nil
 }

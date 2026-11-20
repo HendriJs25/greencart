@@ -50,17 +50,11 @@ func (s *service) GetAll(ctx context.Context, params queryinput.GetAllCategories
 	}
 
 	result := make([]GetAllCategoriesResult, 0, len(categories))
-	var iconURL *string
 	for _, category := range categories {
-		if category.Icon != nil {
-			iconURL = s.s3Storage.GetFileURL(*category.Icon)
-		} else {
-			iconURL = nil
-		}
 		result = append(result, GetAllCategoriesResult{
 			ID:           category.ID,
 			Name:         category.Name,
-			Icon:         iconURL,
+			Icon:         s.s3Storage.GetFileURL(category.Icon),
 			Slug:         category.Slug,
 			TotalProduct: category.TotalProduct,
 			Status:       enum.CategoryStatusFromBool(category.Status),
@@ -82,16 +76,11 @@ func (s *service) GetByID(ctx context.Context, id int64) (*GetDetailCategoryResu
 		parentSlug = &category.Parent.Slug
 	}
 
-	var iconURL *string
-	if category.Icon != nil {
-		iconURL = s.s3Storage.GetFileURL(*category.Icon)
-	}
-
 	result := &GetDetailCategoryResult{
 		ID:          category.ID,
 		ParentSlug:  parentSlug,
 		Name:        category.Name,
-		Icon:        iconURL,
+		Icon:        s.s3Storage.GetFileURL(category.Icon),
 		Status:      enum.CategoryStatusFromBool(category.Status),
 		Slug:        category.Slug,
 		Description: category.Description,
@@ -197,7 +186,7 @@ func (s *service) UploadIconImage(ctx context.Context, id int64, file *multipart
 		cancel()
 	}
 
-	return s.s3Storage.GetFileURL(uploadedKey), nil
+	return s.s3Storage.GetFileURL(&uploadedKey), nil
 }
 
 func validateProfileImage(file *multipart.FileHeader) (string, error) {
