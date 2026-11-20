@@ -20,6 +20,7 @@ type service struct {
 type Service interface {
 	Create(ctx context.Context, input CreateProductInput) error
 	GetAll(ctx context.Context) ([]GetAllProductsResult, error)
+	GetParent(ctx context.Context, id int64) (*DetailProductResult, error)
 }
 
 func NewService(productRepository productrepository.Repository, categoryRepository categoryrepository.Repository, s3Storage storage.Storage) Service {
@@ -75,6 +76,7 @@ func (s *service) GetAll(ctx context.Context) ([]GetAllProductsResult, error) {
 	result := make([]GetAllProductsResult, 0, len(products))
 	for _, product := range products {
 		result = append(result, GetAllProductsResult{
+			ID:                 product.ID,
 			ImageUrl:           s.s3Storage.GetFileURL(product.Image),
 			ProductName:        *product.Name,
 			CategoryName:       product.Category.Name,
@@ -82,5 +84,37 @@ func (s *service) GetAll(ctx context.Context) ([]GetAllProductsResult, error) {
 			Status:             enum.ConvertFromDBValue(*product.Status),
 		})
 	}
+	return result, nil
+}
+
+func (s *service) GetParent(ctx context.Context, id int64) (*DetailProductResult, error) {
+	product, err := s.productRepository.FindParent(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var variantDetail []DetailProductInput
+	for _, detail := range product.VariantDetail {
+		variantDetail = append(variantDetail, DetailProductInput{
+			Status:       enum.ConvertFromDBValue(*detail.Status),
+			Stock:        *detail.Stock,
+			Weight:       *detail.Weight,
+			SalePrice:    *detail.SalePrice,
+			RegularPrice: *detail.RegularPrice,
+		})
+	}
+
+	result := &DetailProductResult{
+		ID:                 product.ID,
+		CategoryName:       product.Category.Name,
+		ProductName:        *product.Name,
+		ImageUrl:           s.s3Storage.GetFileURL(product.Image),
+		ProductDescription: product.Description,
+		Unit:               *product.Unit,
+		Variant:            *product.Variant,
+		Status:             enum.ConvertFromDBValue(*product.Status),
+		VariantDetail:      variantDetail,
+	}
+
 	return result, nil
 }

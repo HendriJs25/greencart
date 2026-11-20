@@ -20,9 +20,22 @@ type DetailProductInput struct {
 }
 
 type GetAllProductsResult struct {
+	ID                 int64
 	ImageUrl           *string
 	ProductName        string
 	CategoryName       string
 	ProductDescription *string
 	Status             enum.ProductStatus
+}
+
+type DetailProductResult struct {
+	ID                 int64
+	CategoryName       string
+	ProductName        string
+	ImageUrl           *string
+	ProductDescription *string
+	Unit               string
+	Variant            int
+	Status             enum.ProductStatus
+	VariantDetail      []DetailProductInput
 }
