@@ -6,4 +6,5 @@ var (
 	ErrCategoryAlreadyExists = errors.New("category already exists")
 	ErrParentCategoryMissing = errors.New("parent category does not exist")
 	ErrCategoryHasChildren   = errors.New("category has children")
+	ErrCategoryNotFound      = errors.New("category not found")
 )
