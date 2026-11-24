@@ -10,7 +10,9 @@ import (
 	errConstant "product-service/internal/constants/error"
 	"product-service/internal/domain/enum"
 	"product-service/internal/domain/model"
+	queryinput "product-service/internal/domain/query"
 	"product-service/internal/logger"
+	"product-service/internal/query"
 	"product-service/internal/repository"
 	categoryrepository "product-service/internal/repository/category"
 	productrepository "product-service/internal/repository/product"
@@ -29,7 +31,7 @@ type service struct {
 
 type Service interface {
 	Create(ctx context.Context, input CreateProductInput) error
-	GetAll(ctx context.Context) ([]GetAllProductsResult, error)
+	GetAll(ctx context.Context, params queryinput.GetAllProductsQueryInput) ([]GetAllProductsResult, *query.Meta, error)
 	GetParent(ctx context.Context, id int64) (*DetailProductResult, error)
 	UploadImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error)
 	UpdateProduct(ctx context.Context, id int64, input UpdateProductInput) error
@@ -81,10 +83,10 @@ func (s *service) Create(ctx context.Context, input CreateProductInput) error {
 	return nil
 }
 
-func (s *service) GetAll(ctx context.Context) ([]GetAllProductsResult, error) {
-	products, err := s.productRepository.FindAll(ctx)
+func (s *service) GetAll(ctx context.Context, params queryinput.GetAllProductsQueryInput) ([]GetAllProductsResult, *query.Meta, error) {
+	products, total, err := s.productRepository.FindAll(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	result := make([]GetAllProductsResult, 0, len(products))
@@ -98,7 +100,10 @@ func (s *service) GetAll(ctx context.Context) ([]GetAllProductsResult, error) {
 			Status:             enum.ConvertFromDBValue(*product.Status),
 		})
 	}
-	return result, nil
+
+	metadata := query.Metadata(params.Page, params.Size, total)
+
+	return result, metadata, nil
 }
 
 func (s *service) GetParent(ctx context.Context, id int64) (*DetailProductResult, error) {

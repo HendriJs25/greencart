@@ -2,8 +2,16 @@ package request
 
 import (
 	"product-service/internal/domain/enum"
+	queryinput "product-service/internal/domain/query"
 	"product-service/internal/services/product"
 )
+
+type GetAllProductsQuery struct {
+	PaginationQuery
+	SortingQuery
+
+	Search string `form:"search"`
+}
 
 type CreateProductRequest struct {
 	ProductName        string                 `json:"name" validate:"required,notblank"`
@@ -38,6 +46,16 @@ type UpdateProductRequest struct {
 	Unit               string                       `json:"unit" validate:"required,notblank"`
 	Status             enum.ProductStatus           `json:"status" validate:"required,oneof=有効 無効 下書き"`
 	VariantDetail      []UpdateDetailProductRequest `json:"variant_detail" validate:"required"`
+}
+
+func ToGetAllProductsQueryInput(params GetAllProductsQuery) queryinput.GetAllProductsQueryInput {
+	return queryinput.GetAllProductsQueryInput{
+		Page:      params.Page,
+		Size:      params.Size,
+		SortOrder: params.SortOrder,
+		SortBy:    params.SortBy,
+		Search:    params.Search,
+	}
 }
 
 func ToCreateProductInput(req CreateProductRequest) product.CreateProductInput {
