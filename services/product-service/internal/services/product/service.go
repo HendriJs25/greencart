@@ -3,12 +3,20 @@ package product
 import (
 	"context"
 	"errors"
+	"fmt"
+	"mime/multipart"
+	"path/filepath"
+	"product-service/internal/common/helper"
 	errConstant "product-service/internal/constants/error"
 	"product-service/internal/domain/enum"
 	"product-service/internal/domain/model"
+	"product-service/internal/logger"
 	categoryrepository "product-service/internal/repository/category"
 	productrepository "product-service/internal/repository/product"
 	"product-service/internal/storage"
+	"strings"
+	"time"
+	"uuid"
 )
 
 type service struct {
@@ -21,6 +29,7 @@ type Service interface {
 	Create(ctx context.Context, input CreateProductInput) error
 	GetAll(ctx context.Context) ([]GetAllProductsResult, error)
 	GetParent(ctx context.Context, id int64) (*DetailProductResult, error)
+	UploadImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error)
 }
 
 func NewService(productRepository productrepository.Repository, categoryRepository categoryrepository.Repository, s3Storage storage.Storage) Service {
@@ -117,4 +126,42 @@ func (s *service) GetParent(ctx context.Context, id int64) (*DetailProductResult
 	}
 
 	return result, nil
+}
+
+func (s *service) UploadImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error) {
+	contentType, err := helper.ValidateImage(file)
+	if err != nil {
+		return nil, err
+	}
+
+	product, err := s.productRepository.FindParent(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	oldKey := product.Image
+
+	path := fmt.Sprintf("products/%d/images/%s%s", product.ID, uuid.NewV4().String(), strings.ToLower(filepath.Ext(file.Filename)))
+
+	uploadedKey, err := s.s3Storage.UploadFile(ctx, file, path, contentType)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.productRepository.UpdateProductImage(ctx, product.ID, uploadedKey); err != nil {
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		_ = s.s3Storage.DeleteFile(cleanupCtx, uploadedKey)
+		cancel()
+		return nil, err
+	}
+
+	if oldKey != nil && *oldKey != "" {
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		if err := s.s3Storage.DeleteFile(cleanupCtx, *oldKey); err != nil {
+			logger.WithContext(ctx).WithError(err).Error("failed to delete old image")
+		}
+		cancel()
+	}
+
+	return s.s3Storage.GetFileURL(&uploadedKey), nil
 }

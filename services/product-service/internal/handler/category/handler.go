@@ -197,8 +197,11 @@ func (h *Handler) UploadIconImage(c *gin.Context) {
 		case errors.Is(err, errConstant.ErrFileTooBig), errors.Is(err, errConstant.ErrUnsupportedFileExtension):
 			response.UnprocessableEntity(c, err)
 			return
+		case errors.Is(err, errConstant.ErrCategoryNotFound):
+			response.UnprocessableEntity(c, err)
+			return
 		default:
-			logger.WithContext(c.Request.Context()).WithError(err).WithField("category_id", id).Error("upload icon image failed")
+			logger.WithContext(c.Request.Context()).WithError(err).WithField("category_id", id).Error("failed to upload category icon image")
 			response.InternalServerError(c)
 			return
 		}

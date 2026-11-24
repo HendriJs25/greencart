@@ -18,6 +18,7 @@ type Repository interface {
 	Create(ctx context.Context, product *model.Product) error
 	FindAll(ctx context.Context) ([]model.Product, error)
 	FindParent(ctx context.Context, id int64) (*model.Product, error)
+	UpdateProductImage(ctx context.Context, id int64, imageKey string) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -53,4 +54,15 @@ func (r *repository) FindParent(ctx context.Context, id int64) (*model.Product, 
 		return nil, fmt.Errorf("failed to find parent product: %w", err)
 	}
 	return &product, nil
+}
+
+func (r *repository) UpdateProductImage(ctx context.Context, id int64, imageKey string) error {
+	result := r.db.WithContext(ctx).Model(&model.Product{}).Where("id = ? AND parent_id IS NULL", id).Update("image", imageKey)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update product image: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrProductNotFound
+	}
+	return nil
 }
