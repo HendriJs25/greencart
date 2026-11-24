@@ -12,7 +12,7 @@ import (
 )
 
 func ValidateImage(file *multipart.FileHeader) (string, error) {
-	const maxSize = 2 << 20 // 2 MiB
+	const maxSize = 3 << 20 // 3 MiB
 
 	if file.Size > maxSize {
 		return "", errConstant.ErrFileTooBig

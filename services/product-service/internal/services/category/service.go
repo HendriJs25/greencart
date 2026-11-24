@@ -157,7 +157,7 @@ func (s *service) UploadIconImage(ctx context.Context, id int64, file *multipart
 
 	category, err := s.categoryRepository.FindByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errConstant.ErrCategoryNotFound
 	}
 
 	oldKey := category.Icon

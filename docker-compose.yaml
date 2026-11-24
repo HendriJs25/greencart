@@ -246,7 +246,8 @@ services:
               "Action": "s3:GetObject",
               "Resource": [
                 "arn:aws:s3:::$$S3_BUCKET/users/*/profile/*",
-                "arn:aws:s3:::$$S3_BUCKET/categories/*"
+                "arn:aws:s3:::$$S3_BUCKET/categories/*",
+                "arn:aws:s3:::$$S3_BUCKET/products/*"
               ]
             }
           ]

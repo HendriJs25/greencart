@@ -100,3 +100,49 @@ func (h *Handler) GetParent(c *gin.Context) {
 		Gin:  c,
 	})
 }
+
+func (h *Handler) UploadImage(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	const maxRequestSize = 3 << 20
+
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxRequestSize)
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			response.UnprocessableEntity(c, errConstant.ErrFileTooBig)
+			return
+		}
+		response.BadRequest(c)
+		return
+	}
+
+	key, err := h.productService.UploadImage(c.Request.Context(), id, file)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrFileTooBig), errors.Is(err, errConstant.ErrUnsupportedFileExtension):
+			response.UnprocessableEntity(c, err)
+			return
+		case errors.Is(err, errConstant.ErrProductNotFound):
+			response.UnprocessableEntity(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithError(err).WithField("product_id", id).Error("failed to upload product image")
+			response.InternalServerError(c)
+			return
+		}
+	}
+
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: key,
+		Gin:  c,
+	})
+}
