@@ -60,7 +60,13 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) GetAll(c *gin.Context) {
-	products, err := h.productService.GetAll(c.Request.Context())
+	var query request.GetAllProductsQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	products, metadata, err := h.productService.GetAll(c.Request.Context(), request.ToGetAllProductsQueryInput(query))
 	if err != nil {
 		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to get all products")
 		response.InternalServerError(c)
@@ -69,6 +75,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 	response.HTTPResponse(response.ParamHTTPResponse{
 		Code: http.StatusOK,
 		Data: responsedto.ToGetAllProductsResponse(products),
+		Meta: metadata,
 		Gin:  c,
 	})
 }
