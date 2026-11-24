@@ -19,6 +19,9 @@ type Repository interface {
 	FindAll(ctx context.Context) ([]model.Product, error)
 	FindParent(ctx context.Context, id int64) (*model.Product, error)
 	UpdateProductImage(ctx context.Context, id int64, imageKey string) error
+	UpdateProductParent(ctx context.Context, id int64, updates map[string]any) error
+	UpdateProductChild(ctx context.Context, id int64, parentID int64, updates map[string]any) error
+	DeleteProductChild(ctx context.Context, id []int64, parentID int64) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -63,6 +66,36 @@ func (r *repository) UpdateProductImage(ctx context.Context, id int64, imageKey 
 	}
 	if result.RowsAffected == 0 {
 		return errConstant.ErrProductNotFound
+	}
+	return nil
+}
+
+func (r *repository) UpdateProductParent(ctx context.Context, id int64, updates map[string]any) error {
+	result := r.db.WithContext(ctx).Model(&model.Product{}).Where("id = ? AND parent_id IS NULL", id).Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update product parent: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrProductNotFound
+	}
+	return nil
+}
+
+func (r *repository) UpdateProductChild(ctx context.Context, id int64, parentID int64, updates map[string]any) error {
+	result := r.db.WithContext(ctx).Model(&model.Product{}).Where("id = ? AND parent_id = ?", id, parentID).Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update product child: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrProductNotFound
+	}
+	return nil
+}
+
+func (r *repository) DeleteProductChild(ctx context.Context, id []int64, parentID int64) error {
+	err := r.db.WithContext(ctx).Where("parent_id = ? AND id NOT IN ?", parentID, id).Delete(&model.Product{}).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete product child: %w", err)
 	}
 	return nil
 }

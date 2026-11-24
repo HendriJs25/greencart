@@ -28,8 +28,18 @@ type GetAllProductsResult struct {
 	Status             enum.ProductStatus
 }
 
+type DetailVariantResult struct {
+	ID           int64
+	Status       enum.ProductStatus
+	Stock        int64
+	Weight       int64
+	SalePrice    int64
+	RegularPrice int64
+}
+
 type DetailProductResult struct {
 	ID                 int64
+	CategorySlug       string
 	CategoryName       string
 	ProductName        string
 	ImageUrl           *string
@@ -37,5 +47,23 @@ type DetailProductResult struct {
 	Unit               string
 	Variant            int
 	Status             enum.ProductStatus
-	VariantDetail      []DetailProductInput
+	VariantDetail      []DetailVariantResult
+}
+
+type UpdateDetailProductInput struct {
+	ID           *int64
+	Status       enum.ProductStatus
+	Stock        int64
+	Weight       int64
+	SalePrice    int64
+	RegularPrice int64
+}
+
+type UpdateProductInput struct {
+	CategorySlug       string
+	ProductName        string
+	ProductDescription *string
+	Unit               string
+	Status             enum.ProductStatus
+	VariantDetail      []UpdateDetailProductInput
 }
