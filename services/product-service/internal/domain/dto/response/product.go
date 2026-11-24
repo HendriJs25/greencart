@@ -16,6 +16,7 @@ type GetAllProductsResponse struct {
 
 type GetProductDetailResponse struct {
 	ID                 int64                  `json:"id"`
+	CategorySlug       string                 `json:"category_slug"`
 	CategoryName       string                 `json:"category_name"`
 	ProductName        string                 `json:"name"`
 	ImageUrl           *string                `json:"image_url"`
@@ -27,6 +28,7 @@ type GetProductDetailResponse struct {
 }
 
 type DetailProductVariant struct {
+	ID           int64              `json:"id"`
 	Status       enum.ProductStatus `json:"status"`
 	Stock        int64              `json:"stock"`
 	Weight       int64              `json:"weight"`
@@ -53,6 +55,7 @@ func ToGetProductDetailResponse(result *product.DetailProductResult) GetProductD
 	var detailVariant []DetailProductVariant
 	for _, variant := range result.VariantDetail {
 		detailVariant = append(detailVariant, DetailProductVariant{
+			ID:           variant.ID,
 			Status:       variant.Status,
 			Stock:        variant.Stock,
 			Weight:       variant.Weight,
@@ -62,6 +65,7 @@ func ToGetProductDetailResponse(result *product.DetailProductResult) GetProductD
 	}
 	return GetProductDetailResponse{
 		ID:                 result.ID,
+		CategorySlug:       result.CategorySlug,
 		CategoryName:       result.CategoryName,
 		ProductName:        result.ProductName,
 		ImageUrl:           result.ImageUrl,

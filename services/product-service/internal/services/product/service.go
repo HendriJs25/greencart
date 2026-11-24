@@ -11,6 +11,7 @@ import (
 	"product-service/internal/domain/enum"
 	"product-service/internal/domain/model"
 	"product-service/internal/logger"
+	"product-service/internal/repository"
 	categoryrepository "product-service/internal/repository/category"
 	productrepository "product-service/internal/repository/product"
 	"product-service/internal/storage"
@@ -23,6 +24,7 @@ type service struct {
 	productRepository  productrepository.Repository
 	categoryRepository categoryrepository.Repository
 	s3Storage          storage.Storage
+	transactionManager repository.TransactionManager
 }
 
 type Service interface {
@@ -30,13 +32,15 @@ type Service interface {
 	GetAll(ctx context.Context) ([]GetAllProductsResult, error)
 	GetParent(ctx context.Context, id int64) (*DetailProductResult, error)
 	UploadImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error)
+	UpdateProduct(ctx context.Context, id int64, input UpdateProductInput) error
 }
 
-func NewService(productRepository productrepository.Repository, categoryRepository categoryrepository.Repository, s3Storage storage.Storage) Service {
+func NewService(productRepository productrepository.Repository, categoryRepository categoryrepository.Repository, s3Storage storage.Storage, transactionManager repository.TransactionManager) Service {
 	return &service{
 		productRepository:  productRepository,
 		categoryRepository: categoryRepository,
 		s3Storage:          s3Storage,
+		transactionManager: transactionManager,
 	}
 }
 
@@ -102,9 +106,10 @@ func (s *service) GetParent(ctx context.Context, id int64) (*DetailProductResult
 		return nil, err
 	}
 
-	var variantDetail []DetailProductInput
+	var variantDetail []DetailVariantResult
 	for _, detail := range product.VariantDetail {
-		variantDetail = append(variantDetail, DetailProductInput{
+		variantDetail = append(variantDetail, DetailVariantResult{
+			ID:           detail.ID,
 			Status:       enum.ConvertFromDBValue(*detail.Status),
 			Stock:        *detail.Stock,
 			Weight:       *detail.Weight,
@@ -115,6 +120,7 @@ func (s *service) GetParent(ctx context.Context, id int64) (*DetailProductResult
 
 	result := &DetailProductResult{
 		ID:                 product.ID,
+		CategorySlug:       product.Category.Slug,
 		CategoryName:       product.Category.Name,
 		ProductName:        *product.Name,
 		ImageUrl:           s.s3Storage.GetFileURL(product.Image),
@@ -164,4 +170,74 @@ func (s *service) UploadImage(ctx context.Context, id int64, file *multipart.Fil
 	}
 
 	return s.s3Storage.GetFileURL(&uploadedKey), nil
+}
+
+func (s *service) UpdateProduct(ctx context.Context, id int64, input UpdateProductInput) error {
+	if len(input.VariantDetail) == 0 {
+		return errConstant.ErrAtLeastOneVariantRequired
+	}
+
+	err := s.transactionManager.WithinTransaction(ctx, func(repositories *repository.Registry) error {
+		category, err := repositories.CategoryRepository.FindBySlug(ctx, &input.CategorySlug)
+		if err != nil {
+			if errors.Is(err, errConstant.ErrNotFound) {
+				return errConstant.ErrCategoryNotFound
+			}
+			return err
+		}
+
+		parentUpdates := map[string]any{
+			"category_slug": category.Slug,
+			"name":          input.ProductName,
+			"description":   input.ProductDescription,
+			"unit":          input.Unit,
+			"status":        input.Status.ConvertToDBValue(),
+		}
+
+		if err := repositories.ProductRepository.UpdateProductParent(ctx, id, parentUpdates); err != nil {
+			return err
+		}
+
+		keepIDs := make([]int64, 0, len(input.VariantDetail))
+		for _, variant := range input.VariantDetail {
+			if variant.ID == nil {
+				createVariantInput := model.Product{
+					ParentID:     &id,
+					Status:       variant.Status.ConvertToDBValue(),
+					Stock:        &variant.Stock,
+					Weight:       &variant.Weight,
+					SalePrice:    &variant.SalePrice,
+					RegularPrice: &variant.RegularPrice,
+				}
+				if err := repositories.ProductRepository.Create(ctx, &createVariantInput); err != nil {
+					return err
+				}
+				keepIDs = append(keepIDs, createVariantInput.ID)
+				continue
+			}
+
+			variantUpdate := map[string]any{
+				"status":        variant.Status.ConvertToDBValue(),
+				"stock":         variant.Stock,
+				"weight":        variant.Weight,
+				"sale_price":    variant.SalePrice,
+				"regular_price": variant.RegularPrice,
+			}
+
+			if err := repositories.ProductRepository.UpdateProductChild(ctx, *variant.ID, id, variantUpdate); err != nil {
+				return err
+			}
+
+			keepIDs = append(keepIDs, *variant.ID)
+		}
+
+		if err := repositories.ProductRepository.DeleteProductChild(ctx, keepIDs, id); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -31,6 +31,8 @@ func MessageJa(err error) string {
 		return "親カテゴリーが見つかりません"
 	case errors.Is(err, errConstant.ErrCategoryHasChildren):
 		return "子カテゴリが存在するため、削除できません"
+	case errors.Is(err, errConstant.ErrAtLeastOneVariantRequired):
+		return "商品バリエーションを1つ以上指定してください"
 	case errors.Is(err, errConstant.ErrCategoryNotFound):
 		return "カテゴリーが見つかりません"
 	case errors.Is(err, errConstant.ErrProductNotFound):

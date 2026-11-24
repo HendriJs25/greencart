@@ -131,7 +131,7 @@ func (h *Handler) UploadImage(c *gin.Context) {
 			response.UnprocessableEntity(c, err)
 			return
 		case errors.Is(err, errConstant.ErrProductNotFound):
-			response.UnprocessableEntity(c, err)
+			response.NotFound(c, err)
 			return
 		default:
 			logger.WithContext(c.Request.Context()).WithError(err).WithField("product_id", id).Error("failed to upload product image")
@@ -143,6 +143,46 @@ func (h *Handler) UploadImage(c *gin.Context) {
 	response.HTTPResponse(response.ParamHTTPResponse{
 		Code: http.StatusOK,
 		Data: key,
+		Gin:  c,
+	})
+}
+
+func (h *Handler) Update(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	var req request.UpdateProductRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		response.ValidationError(c, err)
+		return
+	}
+
+	err = h.productService.UpdateProduct(c.Request.Context(), id, request.ToUpdateProductInput(req))
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrProductNotFound):
+			response.NotFound(c, err)
+			return
+		case errors.Is(err, errConstant.ErrCategoryNotFound), errors.Is(err, errConstant.ErrAtLeastOneVariantRequired):
+			response.UnprocessableEntity(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithField("product_id", id).WithError(err).Error("failed to update product")
+			response.InternalServerError(c)
+			return
+		}
+	}
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
 		Gin:  c,
 	})
 }
