@@ -186,3 +186,29 @@ func (h *Handler) Update(c *gin.Context) {
 		Gin:  c,
 	})
 }
+
+func (h *Handler) Delete(c *gin.Context) {
+	strID := c.Param("id")
+	id, err := strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	err = h.productService.DeleteProduct(c.Request.Context(), id)
+	if err != nil {
+		switch {
+		case errors.Is(err, errConstant.ErrProductNotFound):
+			response.NotFound(c, err)
+			return
+		default:
+			logger.WithContext(c.Request.Context()).WithField("product_id", id).WithError(err).Error("failed to delete product")
+			response.InternalServerError(c)
+			return
+		}
+	}
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Gin:  c,
+	})
+}

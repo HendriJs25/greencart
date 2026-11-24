@@ -33,6 +33,7 @@ type Service interface {
 	GetParent(ctx context.Context, id int64) (*DetailProductResult, error)
 	UploadImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error)
 	UpdateProduct(ctx context.Context, id int64, input UpdateProductInput) error
+	DeleteProduct(ctx context.Context, id int64) error
 }
 
 func NewService(productRepository productrepository.Repository, categoryRepository categoryrepository.Repository, s3Storage storage.Storage, transactionManager repository.TransactionManager) Service {
@@ -240,4 +241,8 @@ func (s *service) UpdateProduct(ctx context.Context, id int64, input UpdateProdu
 		return err
 	}
 	return nil
+}
+
+func (s *service) DeleteProduct(ctx context.Context, id int64) error {
+	return s.productRepository.Delete(ctx, id)
 }

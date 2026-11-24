@@ -22,6 +22,7 @@ type Repository interface {
 	UpdateProductParent(ctx context.Context, id int64, updates map[string]any) error
 	UpdateProductChild(ctx context.Context, id int64, parentID int64, updates map[string]any) error
 	DeleteProductChild(ctx context.Context, id []int64, parentID int64) error
+	Delete(ctx context.Context, id int64) error
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -96,6 +97,17 @@ func (r *repository) DeleteProductChild(ctx context.Context, id []int64, parentI
 	err := r.db.WithContext(ctx).Where("parent_id = ? AND id NOT IN ?", parentID, id).Delete(&model.Product{}).Error
 	if err != nil {
 		return fmt.Errorf("failed to delete product child: %w", err)
+	}
+	return nil
+}
+
+func (r *repository) Delete(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).Where("id = ? AND parent_id IS NULL", id).Delete(&model.Product{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete product: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errConstant.ErrProductNotFound
 	}
 	return nil
 }
