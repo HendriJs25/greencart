@@ -34,6 +34,7 @@ type Service interface {
 	GetAll(ctx context.Context, params queryinput.GetAllProductsQueryInput) ([]GetAllProductsResult, *query.Meta, error)
 	GetParent(ctx context.Context, id int64) (*DetailProductResult, error)
 	GetProductHome(ctx context.Context) ([]GetAllProductsResult, error)
+	GetProductShop(ctx context.Context, params queryinput.GetAllProductsQueryInput) ([]GetAllProductsResult, *query.Meta, error)
 	UploadImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error)
 	UpdateProduct(ctx context.Context, id int64, input UpdateProductInput) error
 	DeleteProduct(ctx context.Context, id int64) error
@@ -151,7 +152,7 @@ func (s *service) GetProductHome(ctx context.Context) ([]GetAllProductsResult, e
 		SortOrder: "desc",
 	}
 
-	products, _, err := s.productRepository.FindAll(ctx, queryParams)
+	products, _, err := s.productRepository.FindAllActive(ctx, queryParams)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +171,27 @@ func (s *service) GetProductHome(ctx context.Context) ([]GetAllProductsResult, e
 	}
 
 	return result, nil
+}
+
+func (s *service) GetProductShop(ctx context.Context, params queryinput.GetAllProductsQueryInput) ([]GetAllProductsResult, *query.Meta, error) {
+	products, total, err := s.productRepository.FindAllActive(ctx, params)
+	if err != nil {
+		return nil, nil, err
+	}
+	result := make([]GetAllProductsResult, 0, len(products))
+	for _, product := range products {
+		result = append(result, GetAllProductsResult{
+			ID:           product.ID,
+			ImageUrl:     s.s3Storage.GetFileURL(product.Image),
+			ProductName:  *product.Name,
+			CategoryName: product.Category.Name,
+			MinPrice:     product.MinPrice,
+			MaxPrice:     product.MaxPrice,
+			Status:       enum.ConvertFromDBValue(*product.Status),
+		})
+	}
+	metadata := query.Metadata(params.Page, params.Size, total)
+	return result, metadata, nil
 }
 
 func (s *service) UploadImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error) {

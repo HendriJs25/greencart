@@ -131,6 +131,35 @@ func (h *Handler) GetProductHome(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GetProductShop(c *gin.Context) {
+	var query request.GetAllProductsQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	if strings.TrimSpace(c.Query("min_price")) == "" {
+		query.MinPrice = nil
+	}
+
+	if strings.TrimSpace(c.Query("max_price")) == "" {
+		query.MaxPrice = nil
+	}
+
+	products, metadata, err := h.productService.GetProductShop(c.Request.Context(), request.ToGetAllProductsQueryInput(query))
+	if err != nil {
+		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to get all products for shop")
+		response.InternalServerError(c)
+		return
+	}
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: responsedto.ToGetProductHomeResponse(products),
+		Meta: metadata,
+		Gin:  c,
+	})
+}
+
 func (h *Handler) UploadImage(c *gin.Context) {
 	strID := c.Param("id")
 	id, err := strconv.ParseInt(strID, 10, 64)
