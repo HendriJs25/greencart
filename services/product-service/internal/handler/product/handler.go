@@ -10,6 +10,7 @@ import (
 	"product-service/internal/logger"
 	productservice "product-service/internal/services/product"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	customValidator "github.com/go-playground/validator/v10"
@@ -64,6 +65,14 @@ func (h *Handler) GetAll(c *gin.Context) {
 	if err := c.ShouldBindQuery(&query); err != nil {
 		response.BadRequest(c)
 		return
+	}
+
+	if strings.TrimSpace(c.Query("min_price")) == "" {
+		query.MinPrice = nil
+	}
+
+	if strings.TrimSpace(c.Query("max_price")) == "" {
+		query.MaxPrice = nil
 	}
 
 	products, metadata, err := h.productService.GetAll(c.Request.Context(), request.ToGetAllProductsQueryInput(query))

@@ -11,6 +11,8 @@ type GetAllProductsResponse struct {
 	ProductName        string             `json:"name"`
 	CategoryName       string             `json:"category_name"`
 	ProductDescription *string            `json:"description"`
+	MinPrice           *int64             `json:"min_price"`
+	MaxPrice           *int64             `json:"max_price"`
 	Status             enum.ProductStatus `json:"status"`
 }
 
@@ -45,6 +47,8 @@ func ToGetAllProductsResponse(result []product.GetAllProductsResult) []GetAllPro
 			ProductName:        p.ProductName,
 			CategoryName:       p.CategoryName,
 			ProductDescription: p.ProductDescription,
+			MinPrice:           p.MinPrice,
+			MaxPrice:           p.MaxPrice,
 			Status:             p.Status,
 		})
 	}

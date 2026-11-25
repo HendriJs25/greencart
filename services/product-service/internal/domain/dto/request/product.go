@@ -10,7 +10,9 @@ type GetAllProductsQuery struct {
 	PaginationQuery
 	SortingQuery
 
-	Search string `form:"search"`
+	Search   string `form:"search"`
+	MinPrice *int64 `form:"min_price"`
+	MaxPrice *int64 `form:"max_price"`
 }
 
 type CreateProductRequest struct {
@@ -55,6 +57,8 @@ func ToGetAllProductsQueryInput(params GetAllProductsQuery) queryinput.GetAllPro
 		SortOrder: params.SortOrder,
 		SortBy:    params.SortBy,
 		Search:    params.Search,
+		MinPrice:  params.MinPrice,
+		MaxPrice:  params.MaxPrice,
 	}
 }
 

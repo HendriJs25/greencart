@@ -97,6 +97,8 @@ func (s *service) GetAll(ctx context.Context, params queryinput.GetAllProductsQu
 			ProductName:        *product.Name,
 			CategoryName:       product.Category.Name,
 			ProductDescription: product.Description,
+			MinPrice:           product.MinPrice,
+			MaxPrice:           product.MaxPrice,
 			Status:             enum.ConvertFromDBValue(*product.Status),
 		})
 	}
