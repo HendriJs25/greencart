@@ -38,6 +38,15 @@ type DetailProductVariant struct {
 	RegularPrice int64              `json:"regular_price"`
 }
 
+type GetProductHomeResponse struct {
+	ID           int64   `json:"id"`
+	ImageUrl     *string `json:"image_url"`
+	ProductName  string  `json:"name"`
+	CategoryName string  `json:"category_name"`
+	MinPrice     *int64  `json:"min_price"`
+	MaxPrice     *int64  `json:"max_price"`
+}
+
 func ToGetAllProductsResponse(result []product.GetAllProductsResult) []GetAllProductsResponse {
 	response := make([]GetAllProductsResponse, 0, len(result))
 	for _, p := range result {
@@ -79,4 +88,19 @@ func ToGetProductDetailResponse(result *product.DetailProductResult) GetProductD
 		Status:             result.Status,
 		VariantDetail:      detailVariant,
 	}
+}
+
+func ToGetProductHomeResponse(products []product.GetAllProductsResult) []GetProductHomeResponse {
+	result := make([]GetProductHomeResponse, 0, len(products))
+	for _, p := range products {
+		result = append(result, GetProductHomeResponse{
+			ID:           p.ID,
+			ImageUrl:     p.ImageUrl,
+			ProductName:  p.ProductName,
+			CategoryName: p.CategoryName,
+			MinPrice:     p.MinPrice,
+			MaxPrice:     p.MaxPrice,
+		})
+	}
+	return result
 }

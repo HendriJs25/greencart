@@ -33,6 +33,7 @@ type Service interface {
 	Create(ctx context.Context, input CreateProductInput) error
 	GetAll(ctx context.Context, params queryinput.GetAllProductsQueryInput) ([]GetAllProductsResult, *query.Meta, error)
 	GetParent(ctx context.Context, id int64) (*DetailProductResult, error)
+	GetProductHome(ctx context.Context) ([]GetAllProductsResult, error)
 	UploadImage(ctx context.Context, id int64, file *multipart.FileHeader) (*string, error)
 	UpdateProduct(ctx context.Context, id int64, input UpdateProductInput) error
 	DeleteProduct(ctx context.Context, id int64) error
@@ -137,6 +138,35 @@ func (s *service) GetParent(ctx context.Context, id int64) (*DetailProductResult
 		Variant:            *product.Variant,
 		Status:             enum.ConvertFromDBValue(*product.Status),
 		VariantDetail:      variantDetail,
+	}
+
+	return result, nil
+}
+
+func (s *service) GetProductHome(ctx context.Context) ([]GetAllProductsResult, error) {
+	queryParams := queryinput.GetAllProductsQueryInput{
+		Page:      1,
+		Size:      5,
+		SortBy:    "created_at",
+		SortOrder: "desc",
+	}
+
+	products, _, err := s.productRepository.FindAll(ctx, queryParams)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]GetAllProductsResult, 0, len(products))
+	for _, product := range products {
+		result = append(result, GetAllProductsResult{
+			ID:           product.ID,
+			ImageUrl:     s.s3Storage.GetFileURL(product.Image),
+			ProductName:  *product.Name,
+			CategoryName: product.Category.Name,
+			MinPrice:     product.MinPrice,
+			MaxPrice:     product.MaxPrice,
+			Status:       enum.ConvertFromDBValue(*product.Status),
+		})
 	}
 
 	return result, nil

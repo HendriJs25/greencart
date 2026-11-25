@@ -117,6 +117,20 @@ func (h *Handler) GetParent(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GetProductHome(c *gin.Context) {
+	products, err := h.productService.GetProductHome(c.Request.Context())
+	if err != nil {
+		logger.WithContext(c.Request.Context()).WithError(err).Error("failed to get products for home")
+		response.InternalServerError(c)
+		return
+	}
+	response.HTTPResponse(response.ParamHTTPResponse{
+		Code: http.StatusOK,
+		Data: responsedto.ToGetProductHomeResponse(products),
+		Gin:  c,
+	})
+}
+
 func (h *Handler) UploadImage(c *gin.Context) {
 	strID := c.Param("id")
 	id, err := strconv.ParseInt(strID, 10, 64)
