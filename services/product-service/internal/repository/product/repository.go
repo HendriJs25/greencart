@@ -13,10 +13,10 @@ import (
 )
 
 var productSortColumns = map[string]string{
-	"id":            "id",
-	"created_at":    "created_at",
-	"name":          "name",
-	"category_slug": "category_slug",
+	"id":            "products.id",
+	"created_at":    "products.created_at",
+	"name":          "products.name",
+	"category_slug": "products.category_slug",
 }
 
 var productSearchColumns = []string{
@@ -55,15 +55,29 @@ func (r *repository) Create(ctx context.Context, product *model.Product) error {
 func (r *repository) FindAll(ctx context.Context, params queryinput.GetAllProductsQueryInput) ([]model.Product, int64, error) {
 	var products []model.Product
 	var count int64
-	q := r.db.WithContext(ctx).Model(&model.Product{}).Joins(`LEFT JOIN categories ON categories.slug = products.category_slug`).Preload("Category").Where("products.parent_id IS NULL").Scopes(query.Search(params.Search, productSearchColumns...))
+	priceSubQuery := r.db.Table("products").
+		Select(`parent_id, MIN(sale_price) AS min_price, MAX(sale_price) AS max_price`).
+		Where("parent_id IS NOT NULL").Where("deleted_at IS NULL").Group("parent_id")
+
+	q := r.db.WithContext(ctx).Model(&model.Product{}).
+		Joins(`LEFT JOIN categories ON categories.slug = products.category_slug`).
+		Joins(`LEFT JOIN (?) AS prices ON prices.parent_id = products.id`, priceSubQuery).
+		Preload("Category").Where("products.parent_id IS NULL").
+		Scopes(query.Search(params.Search, productSearchColumns...), query.ProductPriceRange(params.MinPrice, params.MaxPrice))
+
 	err := q.Session(&gorm.Session{}).Count(&count).Error
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count products: %w", err)
 	}
-	err = q.Session(&gorm.Session{}).Scopes(query.Sort(params.SortBy, params.SortOrder, productSortColumns), query.Paginate(params.Page, params.Size)).Find(&products).Error
+
+	err = q.Session(&gorm.Session{}).
+		Select(`products.*,prices.min_price,prices.max_price`).
+		Scopes(query.Sort(params.SortBy, params.SortOrder, productSortColumns), query.Paginate(params.Page, params.Size)).
+		Find(&products).Error
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to find products: %w", err)
 	}
+
 	return products, count, nil
 }
 

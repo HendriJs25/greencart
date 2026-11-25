@@ -25,6 +25,8 @@ type GetAllProductsResult struct {
 	ProductName        string
 	CategoryName       string
 	ProductDescription *string
+	MinPrice           *int64
+	MaxPrice           *int64
 	Status             enum.ProductStatus
 }
 

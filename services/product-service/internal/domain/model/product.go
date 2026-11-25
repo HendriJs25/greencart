@@ -26,6 +26,9 @@ type Product struct {
 
 	VariantDetail []Product `gorm:"foreignkey:ParentID;references:ID"`
 	Category      Category  `gorm:"foreignkey:CategorySlug;references:Slug"`
+
+	MinPrice *int64 `gorm:"column:min_price;->;-:migration"`
+	MaxPrice *int64 `gorm:"column:max_price;->;-:migration"`
 }
 
 func (p *Product) TableName() string {

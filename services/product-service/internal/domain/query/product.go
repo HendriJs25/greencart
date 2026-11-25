@@ -6,5 +6,7 @@ type GetAllProductsQueryInput struct {
 	query.Pagination
 	query.Sorting
 
-	Search string
+	Search   string
+	MinPrice *int64
+	MaxPrice *int64
 }
